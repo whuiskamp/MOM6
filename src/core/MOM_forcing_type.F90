@@ -96,13 +96,18 @@ type, public :: forcing
     latent_frunoff_diag => NULL()    !< latent [Q R Z T-1 ~> W m-2] from melting frunoff (calving) (typically < 0)
 
   ! water mass fluxes into the ocean [R Z T-1 ~> kg m-2 s-1]; these fluxes impact the ocean mass
+  ! PIK_basal ! New entries for reference (basal_ref) and anomalous (basal_an) sub-shelf melt
+  ! as well as a new virtual mass flux that does not get zeroed out by the coupler.
   real, pointer, dimension(:,:) :: &
     evap        => NULL(), & !< (-1)*fresh water flux evaporated out of the ocean [R Z T-1 ~> kg m-2 s-1]
     lprec       => NULL(), & !< precipitating liquid water into the ocean [R Z T-1 ~> kg m-2 s-1]
     fprec       => NULL(), & !< precipitating frozen water into the ocean [R Z T-1 ~> kg m-2 s-1]
     vprec       => NULL(), & !< virtual liquid precip associated w/ SSS restoring [R Z T-1 ~> kg m-2 s-1]
+    vprec2      => NULL(), & !< virtual liquid precip that is not zeroed out at the coupler level [R Z T-1 ~> kg m-2 s-1]
     lrunoff     => NULL(), & !< liquid river runoff entering ocean [R Z T-1 ~> kg m-2 s-1]
     frunoff     => NULL(), & !< frozen river runoff (calving) entering ocean [R Z T-1 ~> kg m-2 s-1]
+    basal_ref   => NULL(), & !< The reference sub-ice shelf melt entering the ocean [confirm units]
+    basal_an    => NULL(), & !< The anomalous sub-ice shelf melt entering the ocean [confirm units]
     seaice_melt => NULL(), & !< snow/seaice melt (positive) or formation (negative) [R Z T-1 ~> kg m-2 s-1]
     netMassIn   => NULL(), & !< Sum of water mass flux out of the ocean [kg m-2 s-1]
     netMassOut  => NULL(), & !< Net water mass flux into of the ocean [kg m-2 s-1]
