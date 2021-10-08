@@ -440,6 +440,26 @@ subroutine convert_IOB_to_fluxes(IOB, fluxes, index_bounds, Time, valid_time, G,
         call check_mask_val_consistency(IOB%runoff(i-i0,j-j0), G%mask2dT(i,j), i, j, 'runoff', G)
     endif
 
+    ! PIK_basal
+    if (associated(IOB%basal_ref)) then
+      fluxes%basal_ref(i,j) = kg_m2_s_conversion * IOB%basal_ref(i-i0,j-j0) * G%mask2dT(i,j)
+      if (CS%check_no_land_fluxes) &
+        call check_mask_val_consistency(IOB%basal_ref(i-i0,j-j0), G%mask2dT(i,j), i, j, 'basal_ref', G)
+    endif
+    
+    if (associated(IOB%basal_an)) then
+      fluxes%basal_an(i,j) = kg_m2_s_conversion * IOB%basal_an(i-i0,j-j0) * G%mask2dT(i,j)
+      if (CS%check_no_land_fluxes) &
+        call check_mask_val_consistency(IOB%basal_an(i-i0,j-j0), G%mask2dT(i,j), i, j, 'basal_an', G)
+    endif
+    
+    if (associated(IOB%basal_hflx)) then
+      fluxes%heat_content_basal(i,j) = US%W_m2_to_QRZ_T * IOB%basal_hflx(i-i0,j-j0) * G%mask2dT(i,j)
+      if (CS%check_no_land_fluxes) &
+        call check_mask_val_consistency(IOB%basal_hflx(i-i0,j-j0), G%mask2dT(i,j), i, j, 'basal_hflx', G)
+    endif
+    ! PIK_basal
+    
     if (associated(IOB%calving)) then
       fluxes%frunoff(i,j) = kg_m2_s_conversion * IOB%calving(i-i0,j-j0) * G%mask2dT(i,j)
       if (CS%check_no_land_fluxes) &
@@ -578,13 +598,14 @@ subroutine convert_IOB_to_fluxes(IOB, fluxes, index_bounds, Time, valid_time, G,
 !#CTRL# endif
 
   ! adjust the NET fresh-water flux to zero, if flagged
+  ! PIK_basal - Reference basal melt also needs to be part of this adjustment
   if (CS%adjust_net_fresh_water_to_zero) then
     sign_for_net_FW_bug = 1.
     if (CS%use_net_FW_adjustment_sign_bug) sign_for_net_FW_bug = -1.
     do j=js,je ; do i=is,ie
       net_FW(i,j) = US%RZ_T_to_kg_m2s* &
                     (((fluxes%lprec(i,j)   + fluxes%fprec(i,j)) + &
-                      (fluxes%lrunoff(i,j) + fluxes%frunoff(i,j))) + &
+                      (fluxes%lrunoff(i,j) + fluxes%frunoff(i,j) + fluxes%basal_ref(i,j))) + &
                       (fluxes%evap(i,j)    + fluxes%vprec(i,j)) ) * US%L_to_m**2*G%areaT(i,j)
       !   The following contribution appears to be calculating the volume flux of sea-ice
       ! melt. This calculation is clearly WRONG if either sea-ice has variable
