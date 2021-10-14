@@ -311,6 +311,11 @@ type, public :: forcing_diags
   integer :: id_net_massout  = -1, id_net_massin  = -1
   integer :: id_massout_flux = -1, id_massin_flux = -1
   integer :: id_seaice_melt  = -1
+  ! PIK_basal
+  integer :: id_lrunoff_ref  = -1, id_lrunoff_an  = -1
+  integer :: id_frunoff_ref  = -1, id_frunoff_an  = -1
+  integer :: id_basal_ref    = -1, id_basal_an    = -1
+  integer :: id_vprec2       = -1
 
   ! global area integrated mass flux diagnostic handles
   integer :: id_total_prcme        = -1, id_total_evap        = -1
@@ -319,12 +324,19 @@ type, public :: forcing_diags
   integer :: id_total_lrunoff      = -1, id_total_frunoff     = -1
   integer :: id_total_net_massout  = -1, id_total_net_massin  = -1
   integer :: id_total_seaice_melt  = -1
+  ! PIK_basal
+  integer :: id_total_lrunoff_ref  = -1, id_total_lrunoff_an  = -1
+  integer :: id_total_frunoff_ref  = -1, id_total_frunoff_an  = -1
+  integer :: id_total_basal_ref    = -1, id_total_basal_an    = -1
+  integer :: id_total_vprec2       = -1
 
   ! global area averaged mass flux diagnostic handles
   integer :: id_prcme_ga  = -1, id_evap_ga = -1
   integer :: id_lprec_ga  = -1, id_fprec_ga= -1
   integer :: id_precip_ga = -1, id_vprec_ga= -1
-
+  !PIK_basal
+  integer :: id_vprec2_ga = -1
+  
   ! heat flux diagnostic handles
   integer :: id_net_heat_coupler    = -1, id_net_heat_surface      = -1
   integer :: id_sens                = -1, id_LwLatSens             = -1
@@ -339,6 +351,8 @@ type, public :: forcing_diags
   integer :: id_heat_added          = -1, id_heat_content_massin   = -1
   integer :: id_hfrainds            = -1, id_hfrunoffds            = -1
   integer :: id_seaice_melt_heat    = -1, id_heat_content_icemelt  = -1
+  !PIK_basal
+  integer :: id_heat_content_vprec2 = -1, id_heat_content_basal    = -1
 
   ! global area integrated heat flux diagnostic handles
   integer :: id_total_net_heat_coupler    = -1, id_total_net_heat_surface      = -1
@@ -352,6 +366,8 @@ type, public :: forcing_diags
   integer :: id_total_heat_content_vprec  = -1, id_total_heat_content_massout  = -1
   integer :: id_total_heat_added          = -1, id_total_heat_content_massin   = -1
   integer :: id_total_seaice_melt_heat    = -1, id_total_heat_content_icemelt  = -1
+  !PIK_basal
+  integer :: id_total_heat_content_vprec2 = -1, id_total_heat_content_basal    = -1
 
   ! global area averaged heat flux diagnostic handles
   integer :: id_net_heat_coupler_ga = -1, id_net_heat_surface_ga = -1
