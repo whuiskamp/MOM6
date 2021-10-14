@@ -729,6 +729,7 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
 
     ! Add explicit heat flux for runoff (which is part of the ice-ocean boundary
     ! flux type). Runoff is otherwise added with a temperature of SST.
+    ! PIK_basal: Does our runoff have heat content? Then this needs to change.
     if (useRiverHeatContent) then
       ! remove lrunoff*SST here, to counteract its addition elsewhere
       net_heat(i) = (net_heat(i) + (scale*(dt * I_Cp_Hconvert)) * fluxes%heat_content_lrunoff(i,j)) - &
@@ -1056,6 +1057,7 @@ subroutine calculateBuoyancyFlux1d(G, GV, US, fluxes, optics, nsw, h, Temp, Salt
   integer :: i
 
   !  smg: what do we do when have heat fluxes from calving and river?
+  !  PIK_basal: good question - need a solution for basal heat flux, too.
   useRiverHeatContent   = .False.
   useCalvingHeatContent = .False.
 
@@ -1102,6 +1104,8 @@ subroutine calculateBuoyancyFlux1d(G, GV, US, fluxes, optics, nsw, h, Temp, Salt
   do k=2, GV%ke+1
     buoyancyFlux(G%isc:G%iec,k) = - GoRho * ( dRhodT(G%isc:G%iec) * netPen(G%isc:G%iec,k) ) ! [L2 T-3 ~> m2 s-3]
   enddo
+
+  !PIK_basal we should be able to calculate basal buoyancy fluxes in the same way as the penetrative flux here.
 
 end subroutine calculateBuoyancyFlux1d
 
@@ -1243,6 +1247,23 @@ subroutine MOM_forcing_chksum(mesg, fluxes, G, US, haloshift)
   if (associated(fluxes%heat_content_massout)) &
     call hchksum(fluxes%heat_content_massout, mesg//" fluxes%heat_content_massout", G%HI, &
                  haloshift=hshift, scale=US%QRZ_T_to_W_m2)
+
+  ! PIK_basal
+  if (associated(fluxes%vprec2)) &
+    call hchksum(fluxes%vprec2, mesg//" fluxes%vprec2", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)
+  if (associated(fluxes%lrunoff_ref)) &
+    call hchksum(fluxes%lrunoff_ref, mesg//" fluxes%lrunoff_ref", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)
+  if (associated(fluxes%lrunoff_an)) &
+    call hchksum(fluxes%lrunoff_an, mesg//" fluxes%lrunoff_an", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)
+  if (associated(fluxes%frunoff_ref)) &
+    call hchksum(fluxes%frunoff_ref, mesg//" fluxes%frunoff_ref", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)
+  if (associated(fluxes%frunoff_an)) &
+    call hchksum(fluxes%frunoff_an, mesg//" fluxes%frunoff_an", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)
+  if (associated(fluxes%basal_ref)) &
+    call hchksum(fluxes%basal_ref, mesg//" fluxes%basal_ref", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)
+  if (associated(fluxes%basal_an)) &
+    call hchksum(fluxes%basal_an, mesg//" fluxes%basal_an", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)  
+
 end subroutine MOM_forcing_chksum
 
 !> Write out chksums for the driving mechanical forces.
