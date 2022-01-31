@@ -96,39 +96,23 @@ type, public :: forcing
     latent_frunoff_diag => NULL()    !< latent [Q R Z T-1 ~> W m-2] from melting frunoff (calving) (typically < 0)
 
   ! water mass fluxes into the ocean [R Z T-1 ~> kg m-2 s-1]; these fluxes impact the ocean mass
-  ! PIK_basal ! New entries for reference (basal_ref) and anomalous (basal_an) sub-shelf melt
-  ! as well as a new virtual mass flux that does not get zeroed out by the coupler.
+  ! PIK_basal ! New entry for sub-shelf melt
   ! Added an option for PIK_basal routines
+  
+  real, pointer, dimension(:,:) :: &
+    evap        => NULL(), & !< (-1)*fresh water flux evaporated out of the ocean [R Z T-1 ~> kg m-2 s-1]
+    lprec       => NULL(), & !< precipitating liquid water into the ocean [R Z T-1 ~> kg m-2 s-1]
+    fprec       => NULL(), & !< precipitating frozen water into the ocean [R Z T-1 ~> kg m-2 s-1]
+    vprec       => NULL(), & !< virtual liquid precip associated w/ SSS restoring [R Z T-1 ~> kg m-2 s-1]
+    lrunoff     => NULL(), & !< liquid river runoff entering ocean [R Z T-1 ~> kg m-2 s-1]
+    frunoff     => NULL(), & !< frozen river runoff (calving) entering ocean [R Z T-1 ~> kg m-2 s-1]
+    seaice_melt => NULL(), & !< snow/seaice melt (positive) or formation (negative) [R Z T-1 ~> kg m-2 s-1]
+    netMassIn   => NULL(), & !< Sum of water mass flux out of the ocean [kg m-2 s-1]
+    netMassOut  => NULL(), & !< Net water mass flux into of the ocean [kg m-2 s-1]
+    netSalt     => NULL()    !< Net salt entering the ocean [kgSalt m-2 s-1]
   if (PIK_basal) then
     real, pointer, dimension(:,:) :: &
-      evap        => NULL(), & !< (-1)*fresh water flux evaporated out of the ocean [R Z T-1 ~> kg m-2 s-1]
-      lprec       => NULL(), & !< precipitating liquid water into the ocean [R Z T-1 ~> kg m-2 s-1]
-      fprec       => NULL(), & !< precipitating frozen water into the ocean [R Z T-1 ~> kg m-2 s-1]
-      vprec       => NULL(), & !< virtual liquid precip associated w/ SSS restoring [R Z T-1 ~> kg m-2 s-1]
-      vprec2      => NULL(), & !< virtual liquid precip that is not zeroed out at the coupler level [R Z T-1 ~> kg m-2 s-1]
-      lrunoff_ref => NULL(), & !< liquid river runoff entering ocean (reference) [R Z T-1 ~> kg m-2 s-1]
-      lrunoff_an  => NULL(), & !< liquid river runoff entering ocean (reference) [R Z T-1 ~> kg m-2 s-1]
-      frunoff_ref => NULL(), & !< frozen river runoff (calving) entering ocean [R Z T-1 ~> kg m-2 s-1]
-      frunoff_an  => NULL(), & !< frozen river runoff (calving) entering ocean [R Z T-1 ~> kg m-2 s-1]
-      basal_ref   => NULL(), & !< The reference sub-ice shelf melt entering the ocean [confirm units]
-      basal_an    => NULL(), & !< The anomalous sub-ice shelf melt entering the ocean [confirm units]
-      seaice_melt => NULL(), & !< snow/seaice melt (positive) or formation (negative) [R Z T-1 ~> kg m-2 s-1]
-      netMassIn   => NULL(), & !< Sum of water mass flux out of the ocean [kg m-2 s-1]
-      netMassOut  => NULL(), & !< Net water mass flux into of the ocean [kg m-2 s-1]
-      netSalt     => NULL()    !< Net salt entering the ocean [kgSalt m-2 s-1]
-  else
-    real, pointer, dimension(:,:) :: &
-      evap        => NULL(), & !< (-1)*fresh water flux evaporated out of the ocean [R Z T-1 ~> kg m-2 s-1]
-      lprec       => NULL(), & !< precipitating liquid water into the ocean [R Z T-1 ~> kg m-2 s-1]
-      fprec       => NULL(), & !< precipitating frozen water into the ocean [R Z T-1 ~> kg m-2 s-1]
-      vprec       => NULL(), & !< virtual liquid precip associated w/ SSS restoring [R Z T-1 ~> kg m-2 s-1]
-      lrunoff     => NULL(), & !< liquid river runoff entering ocean (reference) [R Z T-1 ~> kg m-2 s-1]
-      lrunoff     => NULL(), & !< liquid river runoff entering ocean (reference) [R Z T-1 ~> kg m-2 s-1]
-      frunoff     => NULL(), & !< frozen river runoff (calving) entering ocean [R Z T-1 ~> kg m-2 s-1]
-      seaice_melt => NULL(), & !< snow/seaice melt (positive) or formation (negative) [R Z T-1 ~> kg m-2 s-1]
-      netMassIn   => NULL(), & !< Sum of water mass flux out of the ocean [kg m-2 s-1]
-      netMassOut  => NULL(), & !< Net water mass flux into of the ocean [kg m-2 s-1]
-      netSalt     => NULL()    !< Net salt entering the ocean [kgSalt m-2 s-1]
+      basal     => NULL()    !< The sub-shelf melt entering the ocean [confirm units]
   endif
 
   ! heat associated with water crossing ocean surface
@@ -145,7 +129,7 @@ type, public :: forcing
     heat_content_massin  => NULL()    !< heat content associated with mass entering ocean [Q R Z T-1 ~> W m-2]
   if (PIK_basal) then
     real, pointer, dimension(:,:) :: &
-      heat_content_basal => NULL()
+      heat_content_basal => NULL()    !< heat content associated with sub-shelf melt     [Q R Z T-1 ~> W m-2]
   endif
 
   ! salt mass flux (contributes to ocean mass only if non-Bouss )
@@ -312,11 +296,8 @@ type, public :: forcing_diags
   integer :: id_massout_flux = -1, id_massin_flux = -1
   integer :: id_seaice_melt  = -1
   ! PIK_basal
-  integer :: id_lrunoff_ref  = -1, id_lrunoff_an  = -1
-  integer :: id_frunoff_ref  = -1, id_frunoff_an  = -1
-  integer :: id_basal_ref    = -1, id_basal_an    = -1
-  integer :: id_vprec2       = -1
-
+  integer :: id_basal        = -1
+  
   ! global area integrated mass flux diagnostic handles
   integer :: id_total_prcme        = -1, id_total_evap        = -1
   integer :: id_total_precip       = -1, id_total_vprec       = -1
@@ -325,18 +306,15 @@ type, public :: forcing_diags
   integer :: id_total_net_massout  = -1, id_total_net_massin  = -1
   integer :: id_total_seaice_melt  = -1
   ! PIK_basal
-  integer :: id_total_lrunoff_ref  = -1, id_total_lrunoff_an  = -1
-  integer :: id_total_frunoff_ref  = -1, id_total_frunoff_an  = -1
-  integer :: id_total_basal_ref    = -1, id_total_basal_an    = -1
-  integer :: id_total_vprec2       = -1
-
+  integer :: id_total_basal        = -1
+  
   ! global area averaged mass flux diagnostic handles
   integer :: id_prcme_ga  = -1, id_evap_ga = -1
   integer :: id_lprec_ga  = -1, id_fprec_ga= -1
   integer :: id_precip_ga = -1, id_vprec_ga= -1
   !PIK_basal
-  integer :: id_vprec2_ga = -1
-  
+  integer :: id_basal_ga  = -1
+    
   ! heat flux diagnostic handles
   integer :: id_net_heat_coupler    = -1, id_net_heat_surface      = -1
   integer :: id_sens                = -1, id_LwLatSens             = -1
@@ -352,7 +330,7 @@ type, public :: forcing_diags
   integer :: id_hfrainds            = -1, id_hfrunoffds            = -1
   integer :: id_seaice_melt_heat    = -1, id_heat_content_icemelt  = -1
   !PIK_basal
-  integer :: id_heat_content_vprec2 = -1, id_heat_content_basal    = -1
+  integer :: id_heat_content_basal    = -1
 
   ! global area integrated heat flux diagnostic handles
   integer :: id_total_net_heat_coupler    = -1, id_total_net_heat_surface      = -1
@@ -367,7 +345,7 @@ type, public :: forcing_diags
   integer :: id_total_heat_added          = -1, id_total_heat_content_massin   = -1
   integer :: id_total_seaice_melt_heat    = -1, id_total_heat_content_icemelt  = -1
   !PIK_basal
-  integer :: id_total_heat_content_vprec2 = -1, id_total_heat_content_basal    = -1
+  integer :: id_total_heat_content_basal    = -1
 
   ! global area averaged heat flux diagnostic handles
   integer :: id_net_heat_coupler_ga = -1, id_net_heat_surface_ga = -1
@@ -602,20 +580,16 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
     endif
 
     ! net volume/mass of liquid and solid passing through surface boundary fluxes
-    ! Do we need to include vprec2?
-    if (PIK_basal) then
+    if (PIK_basal) then ! I don't think we want this? It should not be part of the net amount, which is added at the surface.
       netMassInOut(i) = dt * (scale * &
                                    (((((( fluxes%lprec(i,j)             &
                                         + fluxes%fprec(i,j)          )  &
                                         + fluxes%evap(i,j)           )  &
-                                        + fluxes%lrunoff_ref(i,j)    )  &
-                                        + fluxes%lrunoff_an(i,j)     )  &
+                                        + fluxes%lrunoff(i,j)        )  &
                                         + fluxes%vprec(i,j)          )  &
                                         + fluxes%seaice_melt(i,j)    )  &
-                                        + fluxes%frunoff_ref(i,j)    )  &
-                                        + fluxes%frunoff_an(i,j)     )  &
-                                        + fluxes%basal_ref(i,j)      )  &
-                                        + fluxes%basal_an(i,j)       )  &
+                                        + fluxes%frunoff             )  &
+                                        + fluxes%basal(i,j)          )  &
                                                                      ))
       
       if (do_NMIOr) then  ! Repeat the above code without multiplying by a timestep for legacy reasons
@@ -623,14 +597,11 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
                                    (((((( fluxes%lprec(i,j)             &
                                         + fluxes%fprec(i,j)          )  &
                                         + fluxes%evap(i,j)           )  &
-                                        + fluxes%lrunoff_ref(i,j)    )  &
-                                        + fluxes%lrunoff_an(i,j)     )  &
+                                        + fluxes%lrunoff(i,j)        )  &
                                         + fluxes%vprec(i,j)          )  &
                                         + fluxes%seaice_melt(i,j)    )  &
-                                        + fluxes%frunoff_ref(i,j)    )  &
-                                        + fluxes%frunoff_an(i,j)     )  &
-                                        + fluxes%basal_ref(i,j)      )  &
-                                        + fluxes%basal_an(i,j)       )  &
+                                        + fluxes%frunoff(i,j)        )  &
+                                        + fluxes%basal(i,j)          )  &
                                                                      ))
       endif          
     else
@@ -668,7 +639,6 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
 
     ! net volume/mass of water leaving the ocean.
     ! check that fluxes are < 0, which means mass is indeed leaving.
-    ! Additions made for PIK_basal
     netMassOut(i) = 0.0
 
     ! evap > 0 means condensating water is added into ocean.
@@ -687,12 +657,6 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
     ! vprec < 0 means virtual evaporation arising from surface salinity restoring,
     ! in which case heat_content_vprec is computed in MOM_diabatic_driver.F90.
     if (fluxes%vprec(i,j) < 0.0) netMassOut(i) = netMassOut(i) + fluxes%vprec(i,j)
-
-    if (PIK_basal) then
-      if (fluxes%lrunoff_an(i,j) < 0.0) netMassOut(i) = netMassOut(i) + fluxes%lrunoff_an(i,j)
-      if (fluxes%frunoff_an(i,j) < 0.0) netMassOut(i) = netMassOut(i) + fluxes%frunoff_an(i,j)
-      if (fluxes%basal_an(i,j) < 0.0) netMassOut(i) = netMassOut(i) + fluxes%basal_an(i,j)
-    endif
 
     netMassOut(i) = dt * scale * netMassOut(i)
 
@@ -903,7 +867,7 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
       ! virtual precip associated with salinity restoring
       ! vprec > 0 means add water to ocean, assumed to be at SST
       ! vprec < 0 means remove water from ocean; set heat_content_vprec in MOM_diabatic_driver.F90
-      ! PIK_basal: May have to come back here for vprec2
+      
       if (associated(fluxes%heat_content_vprec)) then
         if (fluxes%vprec(i,j) > 0.0) then
           fluxes%heat_content_vprec(i,j) = fluxes%C_p*fluxes%vprec(i,j)*T(i,1)
@@ -1249,20 +1213,8 @@ subroutine MOM_forcing_chksum(mesg, fluxes, G, US, haloshift)
                  haloshift=hshift, scale=US%QRZ_T_to_W_m2)
 
   ! PIK_basal
-  if (associated(fluxes%vprec2)) &
-    call hchksum(fluxes%vprec2, mesg//" fluxes%vprec2", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)
-  if (associated(fluxes%lrunoff_ref)) &
-    call hchksum(fluxes%lrunoff_ref, mesg//" fluxes%lrunoff_ref", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)
-  if (associated(fluxes%lrunoff_an)) &
-    call hchksum(fluxes%lrunoff_an, mesg//" fluxes%lrunoff_an", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)
-  if (associated(fluxes%frunoff_ref)) &
-    call hchksum(fluxes%frunoff_ref, mesg//" fluxes%frunoff_ref", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)
-  if (associated(fluxes%frunoff_an)) &
-    call hchksum(fluxes%frunoff_an, mesg//" fluxes%frunoff_an", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)
-  if (associated(fluxes%basal_ref)) &
-    call hchksum(fluxes%basal_ref, mesg//" fluxes%basal_ref", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)
-  if (associated(fluxes%basal_an)) &
-    call hchksum(fluxes%basal_an, mesg//" fluxes%basal_an", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)  
+  if (associated(fluxes%basal)) &
+    call hchksum(fluxes%basal, mesg//" fluxes%basal_an", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)  
 
 end subroutine MOM_forcing_chksum
 
@@ -1358,8 +1310,10 @@ subroutine forcing_SinglePointPrint(fluxes, G, i, j, mesg)
   call locMsg(fluxes%ustar_tidal,'ustar_tidal')
   call locMsg(fluxes%lrunoff,'lrunoff')
   call locMsg(fluxes%frunoff,'frunoff')
+  call locMsg(fluxes%basal,'basal') ! PIK_basal
   call locMsg(fluxes%heat_content_lrunoff,'heat_content_lrunoff')
   call locMsg(fluxes%heat_content_frunoff,'heat_content_frunoff')
+  call locMsg(fluxes%heat_content_basal,'heat_content_basal') ! PIK_basal
   call locMsg(fluxes%heat_content_lprec,'heat_content_lprec')
   call locMsg(fluxes%heat_content_fprec,'heat_content_fprec')
   call locMsg(fluxes%heat_content_icemelt,'heat_content_icemelt')
@@ -1481,12 +1435,19 @@ subroutine register_forcing_type_diags(Time, diag, US, use_temperature, handles,
 
   !===============================================================
   ! surface mass flux maps
-
-  handles%id_prcme = register_diag_field('ocean_model', 'PRCmE', diag%axesT1, Time,                  &
-        'Net surface water flux (precip+melt+lrunoff+ice calving-evap)', 'kg m-2 s-1', &
-        standard_name='water_flux_into_sea_water', cmor_field_name='wfo',                            &
-        cmor_standard_name='water_flux_into_sea_water',cmor_long_name='Water Flux Into Sea Water')
+  if (PIK_basal) then
+    handles%id_prcme = register_diag_field('ocean_model', 'PRCmE', diag%axesT1, Time,                  &
+          'Net surface water flux (precip+melt+lrunoff+ice calving+basal-evap)', 'kg m-2 s-1', &
+          standard_name='water_flux_into_sea_water', cmor_field_name='wfo',                            &
+          cmor_standard_name='water_flux_into_sea_water',cmor_long_name='Water Flux Into Sea Water')
         ! This diagnostic is rescaled to MKS units when combined.
+  else
+    handles%id_prcme = register_diag_field('ocean_model', 'PRCmE', diag%axesT1, Time,                  &
+          'Net surface water flux (precip+melt+lrunoff+ice calving-evap)', 'kg m-2 s-1', &
+          standard_name='water_flux_into_sea_water', cmor_field_name='wfo',                            &
+          cmor_standard_name='water_flux_into_sea_water',cmor_long_name='Water Flux Into Sea Water')
+        ! This diagnostic is rescaled to MKS units when combined.
+  endif
 
   handles%id_evap = register_diag_field('ocean_model', 'evap', diag%axesT1, Time, &
         'Evaporation/condensation at ocean surface (evaporation is negative)', &
@@ -1540,6 +1501,15 @@ subroutine register_forcing_type_diags(Time, diag, US, use_temperature, handles,
         cmor_standard_name='water_flux_into_sea_water_from_rivers',                           &
         cmor_long_name='Water Flux into Sea Water From Rivers')
 
+  if (PIK_basal) then
+    handles%id_basal = register_diag_field('ocean_model', 'basal', diag%axesT1, Time, &
+        'Basal melt from ice shelves into ocean', &
+        units='kg m-2 s-1', conversion=US%RZ_T_to_kg_m2s, &
+        standard_name='water_flux_into_sea_water_from_ice_shelves', cmor_field_name='friver',      &
+        cmor_standard_name='water_flux_into_sea_water_from_ice_shelves',                           &
+        cmor_long_name='Water Flux into Sea Water From Ice Shelves')
+  endif
+
   handles%id_net_massout = register_diag_field('ocean_model', 'net_massout', diag%axesT1, Time, &
         'Net mass leaving the ocean due to evaporation, seaice formation', 'kg m-2 s-1')
         ! This diagnostic is rescaled to MKS units when combined.
@@ -1559,13 +1529,21 @@ subroutine register_forcing_type_diags(Time, diag, US, use_temperature, handles,
 
   !=========================================================================
   ! area integrated surface mass transport, all are rescaled to MKS units before area integration.
-
-  handles%id_total_prcme = register_scalar_field('ocean_model', 'total_PRCmE', Time, diag,         &
-      long_name='Area integrated net surface water flux (precip+melt+liq runoff+ice calving-evap)',&
-      units='kg s-1', standard_name='water_flux_into_sea_water_area_integrated',                   &
-      cmor_field_name='total_wfo',                                                                 &
-      cmor_standard_name='water_flux_into_sea_water_area_integrated',                              &
-      cmor_long_name='Water Transport Into Sea Water Area Integrated')
+  if (PIK_basal) then
+    handles%id_total_prcme = register_scalar_field('ocean_model', 'total_PRCmE', Time, diag,         &
+        long_name='Area integrated net surface water flux (precip+melt+liq runoff+ice calving+basal melt-evap)',&
+        units='kg s-1', standard_name='water_flux_into_sea_water_area_integrated',                   &
+        cmor_field_name='total_wfo',                                                                 &
+        cmor_standard_name='water_flux_into_sea_water_area_integrated',                              &
+        cmor_long_name='Water Transport Into Sea Water Area Integrated')
+  else
+    handles%id_total_prcme = register_scalar_field('ocean_model', 'total_PRCmE', Time, diag,         &
+        long_name='Area integrated net surface water flux (precip+melt+liq runoff+ice calving-evap)',&
+        units='kg s-1', standard_name='water_flux_into_sea_water_area_integrated',                   &
+        cmor_field_name='total_wfo',                                                                 &
+        cmor_standard_name='water_flux_into_sea_water_area_integrated',                              &
+        cmor_long_name='Water Transport Into Sea Water Area Integrated')
+  endif
 
   handles%id_total_evap = register_scalar_field('ocean_model', 'total_evap', Time, diag,&
       long_name='Area integrated evap/condense at ocean surface',                       &
@@ -1620,16 +1598,31 @@ subroutine register_forcing_type_diags(Time, diag, US, use_temperature, handles,
   handles%id_total_net_massin = register_scalar_field('ocean_model', 'total_net_massin', Time, diag, &
       long_name='Area integrated mass entering ocean due to predip, runoff, ice melt', units='kg s-1')
 
+  if (PIK_basal) then
+    handles%id_total_basal = register_scalar_field('ocean_model', 'total_basal', Time, diag,&
+      long_name='Area integrated liquid basal melt into ocean', units='kg s-1',                   &
+      cmor_field_name='total_basal',                                                         &
+      cmor_standard_name='water_flux_into_sea_water_from_basal_melt_area_integrated',             &
+      cmor_long_name='Water Flux into Sea Water From Basal Melt Area Integrated')
+  endif
   !=========================================================================
   ! area averaged surface mass transport
+  if (PIK_basal) then
+    handles%id_prcme_ga = register_scalar_field('ocean_model', 'PRCmE_ga', Time, diag,             &
+        long_name='Area averaged net surface water flux (precip+melt+liq runoff+ice calving+basal melt-evap)',&
+        units='kg m-2 s-1', standard_name='water_flux_into_sea_water_area_averaged',               &
+        cmor_field_name='ave_wfo',                                                                 &
+        cmor_standard_name='rainfall_flux_area_averaged',                                          &
+        cmor_long_name='Water Transport Into Sea Water Area Averaged')
 
-  handles%id_prcme_ga = register_scalar_field('ocean_model', 'PRCmE_ga', Time, diag,             &
-      long_name='Area averaged net surface water flux (precip+melt+liq runoff+ice calving-evap)',&
-      units='kg m-2 s-1', standard_name='water_flux_into_sea_water_area_averaged',               &
-      cmor_field_name='ave_wfo',                                                                 &
-      cmor_standard_name='rainfall_flux_area_averaged',                                          &
-      cmor_long_name='Water Transport Into Sea Water Area Averaged')
-
+  else
+    handles%id_prcme_ga = register_scalar_field('ocean_model', 'PRCmE_ga', Time, diag,             &
+        long_name='Area averaged net surface water flux (precip+melt+liq runoff+ice calving-evap)',&
+        units='kg m-2 s-1', standard_name='water_flux_into_sea_water_area_averaged',               &
+        cmor_field_name='ave_wfo',                                                                 &
+        cmor_standard_name='rainfall_flux_area_averaged',                                          &
+        cmor_long_name='Water Transport Into Sea Water Area Averaged')
+  endif
   handles%id_evap_ga = register_scalar_field('ocean_model', 'evap_ga', Time, diag,&
       long_name='Area averaged evap/condense at ocean surface',                   &
       units='kg m-2 s-1', standard_name='water_evaporation_flux_area_averaged',   &
@@ -1653,7 +1646,7 @@ subroutine register_forcing_type_diags(Time, diag, US, use_temperature, handles,
 
   handles%id_precip_ga = register_scalar_field('ocean_model', 'precip_ga', Time, diag, &
       long_name='Area averaged liquid+frozen precip into ocean', units='kg m-2 s-1')
-
+  
   handles%id_vprec_ga = register_scalar_field('ocean_model', 'vrec_ga', Time, diag, &
       long_name='Area averaged virtual liquid precip due to SSS restoring', units='kg m-2 s-1')
 
@@ -1669,6 +1662,13 @@ subroutine register_forcing_type_diags(Time, diag, US, use_temperature, handles,
         diag%axesT1, Time, 'Heat content (relative to 0C) of liquid runoff into ocean',        &
         'W m-2', conversion=US%QRZ_T_to_W_m2, &
         standard_name='temperature_flux_due_to_runoff_expressed_as_heat_flux_into_sea_water')
+  
+  if (PIK_basal) then
+    handles%id_heat_content_basal = register_diag_field('ocean_model', 'heat_content_basal', &
+        diag%axesT1, Time, 'Heat content basal melt into ocean',        &
+        'W m-2', conversion=US%QRZ_T_to_W_m2, &
+        standard_name='temperature_flux_due_to_basal_melt_expressed_as_heat_flux_into_sea_water')
+  endif
 
   handles%id_hfrunoffds = register_diag_field('ocean_model', 'hfrunoffds',                            &
         diag%axesT1, Time, 'Heat content (relative to 0C) of liquid+solid runoff into ocean', &
@@ -1716,7 +1716,7 @@ subroutine register_forcing_type_diags(Time, diag, US, use_temperature, handles,
   handles%id_heat_content_massin = register_diag_field('ocean_model', 'heat_content_massin',   &
          diag%axesT1, Time,'Heat content (relative to 0degC) of net mass entering ocean ocean',&
         'W m-2', conversion=US%QRZ_T_to_W_m2)
-
+  ! TODO - Finish diag stuff from here down.
   handles%id_net_heat_coupler = register_diag_field('ocean_model', 'net_heat_coupler',          &
         diag%axesT1,Time,'Surface ocean heat flux from SW+LW+latent+sensible+seaice_melt_heat (via the coupler)',&
         'W m-2', conversion=US%QRZ_T_to_W_m2)

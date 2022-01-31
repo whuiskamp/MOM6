@@ -156,6 +156,9 @@ type, public :: ocean_grid_type
     df_dx, &      !< Derivative d/dx f (Coriolis parameter) at h-points [T-1 L-1 ~> s-1 m-1].
     df_dy         !< Derivative d/dy f (Coriolis parameter) at h-points [T-1 L-1 ~> s-1 m-1].
 
+  real ALLOCABLE_, dimension(NIMEM_,NJMEM_) :: &
+    basal_depth   !< The depth at which the mass and heat fluxes from PIK_basal are to be inserted [m]
+
   ! These variables are global sums that are useful for 1-d diagnostics and should not be rescaled.
   real :: areaT_global  !< Global sum of h-cell area [m2]
   real :: IareaT_global !< Global sum of inverse h-cell area (1/areaT_global) [m-2].
@@ -587,6 +590,9 @@ subroutine allocate_metrics(G)
   ALLOC_(G%sin_rot(isd:ied,jsd:jed)) ; G%sin_rot(:,:) = 0.0
   ALLOC_(G%cos_rot(isd:ied,jsd:jed)) ; G%cos_rot(:,:) = 1.0
 
+  !PIK_basal
+  ALLOC_(G%basal_depth(isd:ied,jsd:jed)) ; G%basal_depth(:,:) = 0
+
   allocate(G%gridLonT(isg:ieg), source=0.0)
   allocate(G%gridLonB(G%IsgB:G%IegB), source=0.0)
   allocate(G%gridLatT(jsg:jeg), source=0.0)
@@ -629,6 +635,9 @@ subroutine MOM_grid_end(G)
   DEALLOC_(G%bathyT)  ; DEALLOC_(G%CoriolisBu)
   DEALLOC_(G%dF_dx)  ; DEALLOC_(G%dF_dy)
   DEALLOC_(G%sin_rot) ; DEALLOC_(G%cos_rot)
+
+  !PIK_basal
+  DEALLOC_(G%basal_depth)
 
   deallocate(G%gridLonT) ; deallocate(G%gridLatT)
   deallocate(G%gridLonB) ; deallocate(G%gridLatB)

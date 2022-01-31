@@ -190,6 +190,10 @@ type, public :: ice_ocean_boundary_type
                                                             !! ice-shelves, expressed as a coefficient
                                                             !! for divergence damping, as determined
                                                             !! outside of the ocean model [m3 s-1]
+! PIK_basal
+  real, pointer, dimension(:,:) :: basal           =>NULL() !< mass flux of basal melt [kg m-2 s-1]
+  real, pointer, dimension(:,:) :: basal_hflx      =>NULL() !< heat content of basal melt [W m-2]
+                                                           
   integer :: xtype                    !< The type of the exchange - REGRID, REDIST or DIRECT
   type(coupler_2d_bc_type) :: fluxes  !< A structure that may contain an array of named fields
                                       !! used for passive tracer fluxes.
@@ -441,20 +445,14 @@ subroutine convert_IOB_to_fluxes(IOB, fluxes, index_bounds, Time, valid_time, G,
     endif
 
     ! PIK_basal
-    if (associated(IOB%basal_ref)) then
-      fluxes%basal_ref(i,j) = kg_m2_s_conversion * IOB%basal_ref(i-i0,j-j0) * G%mask2dT(i,j)
+    if (associated(IOB%basal)) then
+      fluxes%basal(i,j) = kg_m2_s_conversion * IOB%basal(i-i0,j-j0) * G%mask2dT(i,j)
       if (CS%check_no_land_fluxes) &
-        call check_mask_val_consistency(IOB%basal_ref(i-i0,j-j0), G%mask2dT(i,j), i, j, 'basal_ref', G)
-    endif
-    
-    if (associated(IOB%basal_an)) then
-      fluxes%basal_an(i,j) = kg_m2_s_conversion * IOB%basal_an(i-i0,j-j0) * G%mask2dT(i,j)
-      if (CS%check_no_land_fluxes) &
-        call check_mask_val_consistency(IOB%basal_an(i-i0,j-j0), G%mask2dT(i,j), i, j, 'basal_an', G)
+        call check_mask_val_consistency(IOB%basal(i-i0,j-j0), G%mask2dT(i,j), i, j, 'basal', G)
     endif
     
     if (associated(IOB%basal_hflx)) then
-      fluxes%heat_content_basal(i,j) = US%W_m2_to_QRZ_T * IOB%basal_hflx(i-i0,j-j0) * G%mask2dT(i,j)
+      fluxes%basal_hflx(i,j) = US%W_m2_to_QRZ_T * IOB%basal_hflx(i-i0,j-j0) * G%mask2dT(i,j)
       if (CS%check_no_land_fluxes) &
         call check_mask_val_consistency(IOB%basal_hflx(i-i0,j-j0), G%mask2dT(i,j), i, j, 'basal_hflx', G)
     endif
@@ -598,15 +596,15 @@ subroutine convert_IOB_to_fluxes(IOB, fluxes, index_bounds, Time, valid_time, G,
 !#CTRL# endif
 
   ! adjust the NET fresh-water flux to zero, if flagged
-  ! PIK_basal - Reference basal melt also needs to be part of this adjustment
+  ! PIK_basal - Basal melt also needs to be part of this adjustment
   if (CS%adjust_net_fresh_water_to_zero) then
     sign_for_net_FW_bug = 1.
     if (CS%use_net_FW_adjustment_sign_bug) sign_for_net_FW_bug = -1.
     do j=js,je ; do i=is,ie
       net_FW(i,j) = US%RZ_T_to_kg_m2s* &
                     (((fluxes%lprec(i,j)   + fluxes%fprec(i,j)) + &
-                      (fluxes%lrunoff(i,j) + fluxes%frunoff(i,j) + fluxes%basal_ref(i,j))) + &
-                      (fluxes%evap(i,j)    + fluxes%vprec(i,j)) ) * US%L_to_m**2*G%areaT(i,j)
+                      (fluxes%lrunoff(i,j) + fluxes%frunoff(i,j) + fluxes%basal(i,j))) + &
+                      (fluxes%evap(i,j)    + fluxes%vprec(i,j)) * US%L_to_m**2*G%areaT(i,j)
       !   The following contribution appears to be calculating the volume flux of sea-ice
       ! melt. This calculation is clearly WRONG if either sea-ice has variable
       ! salinity or the sea-ice is completely fresh.

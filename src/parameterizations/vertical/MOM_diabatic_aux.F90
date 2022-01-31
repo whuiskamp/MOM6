@@ -1387,6 +1387,20 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
 
         enddo ! k
 
+        ! PIK_basal. 
+        if (PIK_basal) then
+          if (basal_thk(i,k) > 0.) then ! Check if any basal melt in cell
+            do k=1,nz-1
+              K_depth = sum(h2d(i,0:k)) ! Check if depth of flux input is in current k-level
+              Kp1_depth = sum(h2d(i,0:k+1))
+              if (K_depth < basal_depth(i,j,k) < Kp1_depth) then
+                h2d(i,k) = h2d + basal_thk ! We have to convert the basal flux to a dthickness
+              ! Need to add heat fluxes next
+              endif  
+            enddo
+          endif  
+        endif
+
       ! Check if trying to apply fluxes over land points
       elseif ((abs(netHeat(i))+abs(netSalt(i))+abs(netMassIn(i))+abs(netMassOut(i)))>0.) then
 
@@ -1603,6 +1617,10 @@ subroutine diabatic_aux_init(Time, G, GV, US, param_file, diag, CS, useALEalgori
                  "when making frazil. The default is false, which will be "//&
                  "faster but is inappropriate with ice-shelf cavities.", &
                  default=.false.)
+  ! PIK_basal
+  call get_param(param_file, mdl, "PIK_basal", PIK_basal, &
+                 "If true, use the coupling interface for MOM6 with "//&
+                 "PISM-PICO.", default=.false.)
 
   if (use_ePBL) then
     call get_param(param_file, mdl, "IGNORE_FLUXES_OVER_LAND", CS%ignore_fluxes_over_land,&

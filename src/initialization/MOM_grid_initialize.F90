@@ -182,8 +182,8 @@ subroutine set_grid_metrics_from_mosaic(G, param_file, US)
   real, dimension(2*G%isd-3:2*G%ied+1,2*G%jsd-3:2*G%jed+1) :: tmpZ
   real, dimension(:,:), allocatable :: tmpGlbl
   real :: m_to_L  ! A unit conversion factor [L m-1 ~> nondim]
-  character(len=200) :: filename, grid_file, inputdir
-  character(len=64)  :: mdl = "MOM_grid_init set_grid_metrics_from_mosaic"
+  character(len=200) :: filename, grid_file, inputdir, PIK_basal, basal_file, basal_name !PIK_basal
+  character(len=64)  :: mdl = "MOM_grid_init set_grid_metrics_from_mosaic PIK_basal"
   type(MOM_domain_type), pointer :: SGdom => NULL() ! Supergrid domain
   logical :: lon_bug  ! If true use an older buggy answer in the tripolar longitude.
   integer :: i, j, i2, j2, ni, nj
@@ -207,6 +207,26 @@ subroutine set_grid_metrics_from_mosaic(G, param_file, US)
     call MOM_error(FATAL," set_grid_metrics_from_mosaic: Unable to open "//&
                            trim(filename))
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! PIK_basal !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  call get_param(param_file, mdl, "PIK_basal", PIK_basal, &
+                 "True if sub-shelf melt scheme is active", &
+                 default=.false.)
+
+  if (PIK_basal) then
+    call get_param(param_file, mdl, "basal_file", basal_file, &
+                   "Name of the file in which all basal melt data is stored", &
+                   fail_if_missing=.true.)
+    basal_name = trim(adjustl(inputdir)) // trim(adjustl(basal_file))
+    call log_param(param_file, mdl, "INPUTDIR/GRID_FILE", grid_file)
+    if (.not.file_exists(basal_file)) &
+      cal MOM_error(FATAL," Unable to open basal_file: "//&
+                            trim(basal_file))
+    tempH1(:,:) = 0.0 ! This isn't used for anything else, so why not.
+    call MOM_read_data(basal_file,'basal_depth',tempH1,G%Domain,timelevel=1)
+    do j=G%jsd,G%jed ; do i=G%isd,G%ied
+      G%basal_depth(i,j) = tempH1(i,j)
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! PIK_basal !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Initialize everything to 0.
   dxCu(:,:) = 0.0 ; dyCu(:,:) = 0.0
   dxCv(:,:) = 0.0 ; dyCv(:,:) = 0.0
