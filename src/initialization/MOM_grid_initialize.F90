@@ -183,7 +183,7 @@ subroutine set_grid_metrics_from_mosaic(G, param_file, US)
   real, dimension(:,:), allocatable :: tmpGlbl
   real :: m_to_L  ! A unit conversion factor [L m-1 ~> nondim]
   character(len=200) :: filename, grid_file, inputdir, PIK_basal, basal_file, basal_name !PIK_basal
-  character(len=64)  :: mdl = "MOM_grid_init set_grid_metrics_from_mosaic PIK_basal"
+  character(len=64)  :: mdl = "MOM_grid_init set_grid_metrics_from_mosaic PIK_basal" ! PIK_basal
   type(MOM_domain_type), pointer :: SGdom => NULL() ! Supergrid domain
   logical :: lon_bug  ! If true use an older buggy answer in the tripolar longitude.
   integer :: i, j, i2, j2, ni, nj

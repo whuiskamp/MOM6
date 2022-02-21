@@ -1035,6 +1035,9 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
   real :: dThickness, dTemp, dSalt
   real :: fractionOfForcing, hOld, Ithickness
   real :: RivermixConst  ! A constant used in implementing river mixing [R Z2 T-1 ~> Pa s].
+  if (CS%PIK_basal) then
+    real :: dthk_basal
+  endif
 
   real, dimension(SZI_(G)) :: &
     d_pres,       &  ! pressure change across a layer [R L2 T-2 ~> Pa]
@@ -1056,6 +1059,13 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
     netsalt_rate, &  ! netsalt but for dt=1 (e.g. returns a rate)
                      ! [ppt H T-1 ~> ppt m s-1 or ppt kg m-2 s-1]
     netMassInOut_rate! netmassinout but for dt=1 [H T-1 ~> m s-1 or kg m-2 s-1]
+  if (CS%PIK_basal) then
+    real, dimension(SZI_(G)) :: &
+      basal_thk,  &  ! basal mass flux from PIK_basal routines
+      basal_heat, &  ! basal heat flux from PIK_basal routines
+      basal_depth &  ! depth of insertion for basal mass and heat fluxes
+  endif
+  
   real, dimension(SZI_(G), SZK_(GV)) :: &
     h2d, &           ! A 2-d copy of the thicknesses [H ~> m or kg m-2]
     T2d, &           ! A 2-d copy of the layer temperatures [degC]
@@ -1216,6 +1226,12 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
                   Pen_SW_bnd, tv, aggregate_FW_forcing, nonpenSW=nonpenSW,                &
                   net_Heat_rate=netheat_rate, net_salt_rate=netsalt_rate,                 &
                   netmassinout_rate=netmassinout_rate, pen_sw_bnd_rate=pen_sw_bnd_rate)
+    elseif (CS%PIK_basal) then !PIK_basal
+      call extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt,          &
+                  H_limit_fluxes, CS%use_river_heat_content, CS%use_calving_heat_content, &
+                  h2d, T2d, netMassInOut, netMassOut, netHeat, netSalt,                   &
+                  Pen_SW_bnd, tv, aggregate_FW_forcing, nonpenSW=nonpenSW,                &
+                  basal_thk=basal_thk,basal_heat=basal_heat)
     else
       call extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt,          &
                   H_limit_fluxes, CS%use_river_heat_content, CS%use_calving_heat_content, &
@@ -1389,12 +1405,18 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
 
         ! PIK_basal. 
         if (PIK_basal) then
-          if (basal_thk(i,k) > 0.) then ! Check if any basal melt in cell
+          if (basal_thk(i,j) > 0.) then ! Check if any basal melt in cell
             do k=1,nz-1
               K_depth = sum(h2d(i,0:k)) ! Check if depth of flux input is in current k-level
               Kp1_depth = sum(h2d(i,0:k+1))
-              if (K_depth < basal_depth(i,j,k) < Kp1_depth) then
-                h2d(i,k) = h2d + basal_thk ! We have to convert the basal flux to a dthickness
+              if (K_depth < G%basal_depth(i,j) < Kp1_depth) then
+                hOld     = h2d(i,k)                  ! We need the initial thickness
+                h2d(i,k) = h2d(i,k) + basal_thk(i,j) ! Update thickness with basal melt
+                Ithickness  = 1.0/h2d(i,k)           ! Inverse new thickness
+                !!!  Update temp. due to mass change !!!
+                dTemp = basal_thk*T2d(i,k)
+                T2d(i,k)    = (hOld*T2d(i,k) + dTemp)*Ithickness
+                tv%S(i,j,k) = (hOld*tv%S(i,j,k) + dSalt)*Ithickness
               ! Need to add heat fluxes next
               endif  
             enddo
@@ -1618,7 +1640,7 @@ subroutine diabatic_aux_init(Time, G, GV, US, param_file, diag, CS, useALEalgori
                  "faster but is inappropriate with ice-shelf cavities.", &
                  default=.false.)
   ! PIK_basal
-  call get_param(param_file, mdl, "PIK_basal", PIK_basal, &
+  call get_param(param_file, mdl, "PIK_basal", CS%PIK_basal, &
                  "If true, use the coupling interface for MOM6 with "//&
                  "PISM-PICO.", default=.false.)
 

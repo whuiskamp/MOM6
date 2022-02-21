@@ -109,11 +109,9 @@ type, public :: forcing
     seaice_melt => NULL(), & !< snow/seaice melt (positive) or formation (negative) [R Z T-1 ~> kg m-2 s-1]
     netMassIn   => NULL(), & !< Sum of water mass flux out of the ocean [kg m-2 s-1]
     netMassOut  => NULL(), & !< Net water mass flux into of the ocean [kg m-2 s-1]
-    netSalt     => NULL()    !< Net salt entering the ocean [kgSalt m-2 s-1]
-  if (PIK_basal) then
-    real, pointer, dimension(:,:) :: &
-      basal     => NULL()    !< The sub-shelf melt entering the ocean [confirm units]
-  endif
+    netSalt     => NULL(), & !< Net salt entering the ocean [kgSalt m-2 s-1]
+    basal       => NULL()    !< The sub-shelf melt entering the ocean [confirm units] !PIK_basal
+  
 
   ! heat associated with water crossing ocean surface
   real, pointer, dimension(:,:) :: &
@@ -126,11 +124,9 @@ type, public :: forcing
     heat_content_lrunoff => NULL(), & !< heat content associated with liquid runoff      [Q R Z T-1 ~> W m-2]
     heat_content_frunoff => NULL(), & !< heat content associated with frozen runoff      [Q R Z T-1 ~> W m-2]
     heat_content_massout => NULL(), & !< heat content associated with mass leaving ocean [Q R Z T-1 ~> W m-2]
-    heat_content_massin  => NULL()    !< heat content associated with mass entering ocean [Q R Z T-1 ~> W m-2]
-  if (PIK_basal) then
-    real, pointer, dimension(:,:) :: &
-      heat_content_basal => NULL()    !< heat content associated with sub-shelf melt     [Q R Z T-1 ~> W m-2]
-  endif
+    heat_content_massin  => NULL(), & !< heat content associated with mass entering ocean [Q R Z T-1 ~> W m-2]
+    heat_content_basal   => NULL()    !< heat content associated with sub-shelf melt     [Q R Z T-1 ~> W m-2] !PIK_basal
+  
 
   ! salt mass flux (contributes to ocean mass only if non-Bouss )
   real, pointer, dimension(:,:) :: &
@@ -411,7 +407,7 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
                   FluxRescaleDepth, useRiverHeatContent, useCalvingHeatContent, &
                   h, T, netMassInOut, netMassOut, net_heat, net_salt, pen_SW_bnd, tv, &
                   aggregate_FW, nonpenSW, netmassInOut_rate, net_Heat_Rate, &
-                  net_salt_rate, pen_sw_bnd_Rate, skip_diags)
+                  net_salt_rate, pen_sw_bnd_Rate, skip_diags, basal_thk, basal_heat)
 
   type(ocean_grid_type),    intent(in)    :: G              !< ocean grid structure
   type(verticalGrid_type),  intent(in)    :: GV             !< ocean vertical grid structure
@@ -474,6 +470,13 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
                   optional, intent(out)   :: pen_sw_bnd_rate !< Rate of penetrative shortwave heating
                                                              !! [degC H T-1 ~> degC m s-1 or degC kg m-2 s-1].
   logical,        optional, intent(in)    :: skip_diags      !< If present and true, skip calculating diagnostics
+  real, dimension(SZI_(G)), &
+                  optional, intent(out)   :: basal_thk      !< PIK_basal. Basal mass flux (non-Bouss) or volume flux
+                                                            !! (if Bouss) of water entering ocean 
+                                                            !! over a time step [H ~> m or kg m-2].
+  real, dimension(SZI_(G)), &
+                  optional, intent(out)   :: basal_heat     !< PIK_basal. Heat flux entering ocean over a time-step
+                                                            !! due to sub-shelf melt water.                                           
 
   ! local
   real :: htot(SZI_(G))       ! total ocean depth [H ~> m or kg m-2]
@@ -580,32 +583,7 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
     endif
 
     ! net volume/mass of liquid and solid passing through surface boundary fluxes
-    if (PIK_basal) then ! I don't think we want this? It should not be part of the net amount, which is added at the surface.
-      netMassInOut(i) = dt * (scale * &
-                                   (((((( fluxes%lprec(i,j)             &
-                                        + fluxes%fprec(i,j)          )  &
-                                        + fluxes%evap(i,j)           )  &
-                                        + fluxes%lrunoff(i,j)        )  &
-                                        + fluxes%vprec(i,j)          )  &
-                                        + fluxes%seaice_melt(i,j)    )  &
-                                        + fluxes%frunoff             )  &
-                                        + fluxes%basal(i,j)          )  &
-                                                                     ))
-      
-      if (do_NMIOr) then  ! Repeat the above code without multiplying by a timestep for legacy reasons
-        netMassInOut_rate(i) = (scale * &
-                                   (((((( fluxes%lprec(i,j)             &
-                                        + fluxes%fprec(i,j)          )  &
-                                        + fluxes%evap(i,j)           )  &
-                                        + fluxes%lrunoff(i,j)        )  &
-                                        + fluxes%vprec(i,j)          )  &
-                                        + fluxes%seaice_melt(i,j)    )  &
-                                        + fluxes%frunoff(i,j)        )  &
-                                        + fluxes%basal(i,j)          )  &
-                                                                     ))
-      endif          
-    else
-      netMassInOut(i) = dt * (scale * &
+    netMassInOut(i) = dt * (scale * &
                                    (((((( fluxes%lprec(i,j)        &
                                         + fluxes%fprec(i,j)      )  &
                                         + fluxes%evap(i,j)       )  &
@@ -614,7 +592,7 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
                                         + fluxes%seaice_melt(i,j))  &
                                         + fluxes%frunoff(i,j)    ))
     
-      if (do_NMIOr) then  ! Repeat the above code without multiplying by a timestep for legacy reasons
+    if (do_NMIOr) then  ! Repeat the above code without multiplying by a timestep for legacy reasons
       netMassInOut_rate(i) = (scale * &
                                    (((((( fluxes%lprec(i,j)      &
                                         + fluxes%fprec(i,j)      )  &
@@ -623,7 +601,11 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
                                         + fluxes%vprec(i,j)      )  &
                                         + fluxes%seaice_melt(i,j))  &
                                         + fluxes%frunoff(i,j)   ))
-      endif
+    endif
+
+    if (present(basal_thk)) then !PIK_basal - Convert mass flux from basal melt
+      basal_thk = dt * scale * fluxes%basal(i,j)
+      basal_heat= dt * scale * I_Cp_Hconvert * fluxes%basal_hflx(i,j)
     endif
 
     ! smg:
@@ -631,6 +613,7 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
     ! total salt mass ocean+ice, the sea ice model must lose mass when salt mass
     ! is added to the ocean, which may still need to be coded.  Not that the units
     ! of netMassInOut are still kg_m2, so no conversion to H should occur yet.
+    ! PIK_basal - This may be a problem. Double check this when running.
     if (.not.GV%Boussinesq .and. associated(fluxes%salt_flux)) then
       netMassInOut(i) = netMassInOut(i) + dt * (scale * fluxes%salt_flux(i,j))
       if (do_NMIOr) netMassInOut_rate(i) = netMassInOut_rate(i) + &
@@ -693,7 +676,6 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
 
     ! Add explicit heat flux for runoff (which is part of the ice-ocean boundary
     ! flux type). Runoff is otherwise added with a temperature of SST.
-    ! PIK_basal: Does our runoff have heat content? Then this needs to change.
     if (useRiverHeatContent) then
       ! remove lrunoff*SST here, to counteract its addition elsewhere
       net_heat(i) = (net_heat(i) + (scale*(dt * I_Cp_Hconvert)) * fluxes%heat_content_lrunoff(i,j)) - &
@@ -726,18 +708,6 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
       endif
     endif
     
-    ! Add explicit heat flux for basal melt as part of PIK_basal. We do not remove basal*SST here as is the case for lrunoff and frunoff
-    ! as this is not implemented elsewhere for basal melt.
-    if (PIK_basal) then
-      net_heat(i) = net_heat(i) + (scale*(dt * I_Cp_Hconvert)) * fluxes%heat_content_basal(i,j)
-      
-      ! This is not currently correct. Not sure if it needs to be included.
-      !if (calculate_diags .and. associated(tv%TempxPmE)) then
-      !  tv%TempxPmE(i,j) = tv%TempxPmE(i,j) + (scale * dt) * &
-      !      (I_Cp*fluxes%heat_content_frunoff(i,j) - fluxes%frunoff(i,j)*T(i,1))
-      !endif
-    endif
-
 
 ! smg: new code
     ! add heat from all terms that may add mass to the ocean (K * H).
@@ -891,7 +861,6 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
       endif
 
       ! Liquid runoff enters ocean at SST if land model does not provide runoff heat content.
-      ! PIK_basal: should not need to alter these, as PICO always provides heat flux.
       if (.not. useRiverHeatContent) then
         if (associated(fluxes%lrunoff) .and. associated(fluxes%heat_content_lrunoff)) then
           fluxes%heat_content_lrunoff(i,j) = fluxes%C_p*fluxes%lrunoff(i,j)*T(i,1)
@@ -1054,6 +1023,7 @@ subroutine calculateBuoyancyFlux1d(G, GV, US, fluxes, optics, nsw, h, Temp, Salt
                                 tv%eqn_of_state, EOS_domain(G%HI))
 
   ! Adjust netSalt to reflect dilution effect of FW flux
+  ! PIK_basal - need to keep an eye one this when testing.
   netSalt(G%isc:G%iec) = netSalt(G%isc:G%iec) - Salt(G%isc:G%iec,j,1) * netH(G%isc:G%iec) ! ppt H/s
 
   ! Add in the SW heating for purposes of calculating the net
