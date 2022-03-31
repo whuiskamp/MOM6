@@ -1125,6 +1125,7 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
   if (CS%id_createdH>0) CS%createdH(:,:) = 0.
   numberOfGroundings = 0
 
+  ! PIK_Basal - if we ever use OMP, this will have to change.
   !$OMP parallel do default(none) shared(is,ie,js,je,nz,h,tv,nsw,G,GV,US,optics,fluxes,    &
   !$OMP                                  H_limit_fluxes,numberOfGroundings,iGround,jGround,&
   !$OMP                                  nonPenSW,hGrounding,CS,Idt,aggregate_FW_forcing,  &
@@ -1409,15 +1410,17 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
             do k=1,nz-1
               K_depth = sum(h2d(i,0:k)) ! Check if depth of flux input is in current k-level
               Kp1_depth = sum(h2d(i,0:k+1))
-              if (K_depth < G%basal_depth(i,j) < Kp1_depth) then
+              if (K_depth < G%basal_depth(i,j)) .and. (G%basal_depth(i,j) < Kp1_depth) then
                 hOld     = h2d(i,k)                  ! We need the initial thickness
                 h2d(i,k) = h2d(i,k) + basal_thk(i,j) ! Update thickness with basal melt
                 Ithickness  = 1.0/h2d(i,k)           ! Inverse new thickness
                 !!!  Update temp. due to mass change !!!
-                dTemp = basal_thk*T2d(i,k)
+                dTemp = basal_thk(i,j)*T2d(i,k)
                 T2d(i,k)    = (hOld*T2d(i,k) + dTemp)*Ithickness
                 tv%S(i,j,k) = (hOld*tv%S(i,j,k) + dSalt)*Ithickness
-              ! Need to add heat fluxes next
+                ! Update temp. due to heat flux
+                T2d(i,k)    = T2d(i,k) + basal_heat(i,j)*h2d(i,k)
+                exit ! No need to search further down the column
               endif  
             enddo
           endif  
