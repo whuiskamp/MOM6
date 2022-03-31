@@ -219,13 +219,14 @@ subroutine set_grid_metrics_from_mosaic(G, param_file, US)
     basal_name = trim(adjustl(inputdir)) // trim(adjustl(basal_file))
     call log_param(param_file, mdl, "INPUTDIR/GRID_FILE", grid_file)
     if (.not.file_exists(basal_file)) &
-      cal MOM_error(FATAL," Unable to open basal_file: "//&
+      call MOM_error(FATAL," Unable to open basal_file: "//&
                             trim(basal_file))
     tempH1(:,:) = 0.0 ! This isn't used for anything else, so why not.
     call MOM_read_data(basal_file,'basal_depth',tempH1,G%Domain,timelevel=1)
     do j=G%jsd,G%jed ; do i=G%isd,G%ied
       G%basal_depth(i,j) = tempH1(i,j)
-
+    enddo ; enddo
+  endif    
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! PIK_basal !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   ! Initialize everything to 0.
   dxCu(:,:) = 0.0 ; dyCu(:,:) = 0.0
