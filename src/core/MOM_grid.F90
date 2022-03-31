@@ -205,6 +205,7 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
   integer :: niblock, njblock, nihalo, njhalo, nblocks, n, i, j
   logical :: local_indexing  ! If false use global index values instead of having
                              ! the data domain on each processor start at 1.
+  logical :: PIK_basal
   ! This include declares and sets the variable "version".
 # include "version_variable.h"
 
@@ -230,6 +231,9 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
   call get_param(param_file, mod_nm, "REFERENCE_HEIGHT", G%Z_ref, &
                  "A reference value for geometric height fields, such as bathyT.", &
                  units="m", default=0.0, scale=mean_SeaLev_scale)
+  !PIK_basal
+  call get_param(param_file, "PIK_basal", PIK_basal, "Logical option for "// &
+                 "inclusion of sub-shelf melt at depth.", default=.false.)
 
   if (present(HI)) then
     G%HI = HI
@@ -590,8 +594,10 @@ subroutine allocate_metrics(G)
   ALLOC_(G%sin_rot(isd:ied,jsd:jed)) ; G%sin_rot(:,:) = 0.0
   ALLOC_(G%cos_rot(isd:ied,jsd:jed)) ; G%cos_rot(:,:) = 1.0
 
-  !PIK_basal
-  ALLOC_(G%basal_depth(isd:ied,jsd:jed)) ; G%basal_depth(:,:) = 0
+  !PIK_basal - double check dimensions
+  if (PIK_basal) then
+    ALLOC_(G%basal_depth(isd:ied,jsd:jed)) ; G%basal_depth(:,:) = 0
+  endif
 
   allocate(G%gridLonT(isg:ieg), source=0.0)
   allocate(G%gridLonB(G%IsgB:G%IegB), source=0.0)
