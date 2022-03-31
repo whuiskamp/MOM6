@@ -604,8 +604,8 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
     endif
 
     if (present(basal_thk)) then !PIK_basal - Convert mass flux from basal melt
-      basal_thk = dt * scale * fluxes%basal(i,j)
-      basal_heat= dt * scale * I_Cp_Hconvert * fluxes%basal_hflx(i,j)
+      basal_thk(i) = dt * scale * fluxes%basal(i,j)
+      basal_heat(i)= dt * scale * I_Cp_Hconvert * fluxes%basal_hflx(i,j)
     endif
 
     ! smg:
