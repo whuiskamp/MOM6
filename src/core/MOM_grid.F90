@@ -205,7 +205,6 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
   integer :: niblock, njblock, nihalo, njhalo, nblocks, n, i, j
   logical :: local_indexing  ! If false use global index values instead of having
                              ! the data domain on each processor start at 1.
-  logical :: PIK_basal
   ! This include declares and sets the variable "version".
 # include "version_variable.h"
 
@@ -231,10 +230,7 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
   call get_param(param_file, mod_nm, "REFERENCE_HEIGHT", G%Z_ref, &
                  "A reference value for geometric height fields, such as bathyT.", &
                  units="m", default=0.0, scale=mean_SeaLev_scale)
-  !PIK_basal
-  call get_param(param_file, "PIK_basal", PIK_basal, "Logical option for "// &
-                 "inclusion of sub-shelf melt at depth.", default=.false.)
-
+  
   if (present(HI)) then
     G%HI = HI
 
@@ -534,9 +530,14 @@ end subroutine get_global_grid_size
 subroutine allocate_metrics(G)
   type(ocean_grid_type), intent(inout) :: G !< The horizontal grid type
   integer :: isd, ied, jsd, jed, IsdB, IedB, JsdB, JedB, isg, ieg, jsg, jeg
+  logical :: PIK_basal
 
   ! This subroutine allocates the lateral elements of the ocean_grid_type that
   ! are always used and zeros them out.
+
+  !PIK_basal
+  call get_param(param_file, "PIK_basal", PIK_basal, "Logical option for "// &
+                 "inclusion of sub-shelf melt at depth.", default=.false.)
 
   isd = G%isd ; ied = G%ied ; jsd = G%jsd ; jed = G%jed
   IsdB = G%IsdB ; IedB = G%IedB ; JsdB = G%JsdB ; JedB = G%JedB
@@ -643,8 +644,10 @@ subroutine MOM_grid_end(G)
   DEALLOC_(G%sin_rot) ; DEALLOC_(G%cos_rot)
 
   !PIK_basal
-  DEALLOC_(G%basal_depth)
-
+  if (present(PIK_basal)) then
+    DEALLOC_(G%basal_depth)
+  endif
+  
   deallocate(G%gridLonT) ; deallocate(G%gridLatT)
   deallocate(G%gridLonB) ; deallocate(G%gridLatB)
 
