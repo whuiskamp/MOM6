@@ -211,7 +211,7 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
 
   integer, allocatable, dimension(:) :: ibegin, iend, jbegin, jend
   character(len=40)  :: mod_nm  = "MOM_grid" ! This module's name.
-
+  character(len=40)  :: mod_PIK = "PIK_basal" ! Custom options from our runoff module
 
   ! Read all relevant parameters and write them to the model log.
   call get_param(param_file, mod_nm, "REFERENCE_HEIGHT", G%Z_ref, default=0.0, do_not_log=.true.)
@@ -226,7 +226,7 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
                  "in the y-direction on each processor (for openmp).", default=1, &
                  layoutParam=.true.)
   !PIK_basal
-  call get_param(param_file, "PIK_basal", PIK_basal, "Logical option for "// &
+  call get_param(param_file, mod_PIK, PIK_basal, "Logical option for "// &
                  "inclusion of sub-shelf melt at depth.", default=.false.)
   if (present(US)) then ; if (associated(US)) G%US => US ; endif
 
