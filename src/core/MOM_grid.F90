@@ -205,6 +205,7 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
   integer :: niblock, njblock, nihalo, njhalo, nblocks, n, i, j
   logical :: local_indexing  ! If false use global index values instead of having
                              ! the data domain on each processor start at 1.
+  logical :: PIK_basal       ! If true, PIK_basal routines are active
   ! This include declares and sets the variable "version".
 # include "version_variable.h"
 
@@ -224,6 +225,9 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
   call get_param(param_file, mod_nm, "NJBLOCK", njblock, "The number of blocks "// &
                  "in the y-direction on each processor (for openmp).", default=1, &
                  layoutParam=.true.)
+  !PIK_basal
+  call get_param(param_file, "PIK_basal", PIK_basal, "Logical option for "// &
+                 "inclusion of sub-shelf melt at depth.", default=.false.)
   if (present(US)) then ; if (associated(US)) G%US => US ; endif
 
   mean_SeaLev_scale = 1.0 ;  if (associated(G%US)) mean_SeaLev_scale = G%US%m_to_Z
@@ -278,7 +282,7 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
 
   call MOM_mesg("  MOM_grid.F90, MOM_grid_init: allocating metrics", 5)
 
-  call allocate_metrics(G)
+  call allocate_metrics(G,PIK_basal)
 
   isd = G%isd ; ied = G%ied ; jsd = G%jsd ; jed = G%jed
   IsdB = G%IsdB ; IedB = G%IedB ; JsdB = G%JsdB ; JedB = G%JedB
@@ -527,17 +531,13 @@ subroutine get_global_grid_size(G, niglobal, njglobal)
 end subroutine get_global_grid_size
 
 !> Allocate memory used by the ocean_grid_type and related structures.
-subroutine allocate_metrics(G)
+subroutine allocate_metrics(G,PIK_basal)
   type(ocean_grid_type), intent(inout) :: G !< The horizontal grid type
   integer :: isd, ied, jsd, jed, IsdB, IedB, JsdB, JedB, isg, ieg, jsg, jeg
-  logical :: PIK_basal
+  logical, intent(in) :: PIK_basal ! If true, PIK_basal routines are active
 
   ! This subroutine allocates the lateral elements of the ocean_grid_type that
   ! are always used and zeros them out.
-
-  !PIK_basal
-  call get_param(param_file, "PIK_basal", PIK_basal, "Logical option for "// &
-                 "inclusion of sub-shelf melt at depth.", default=.false.)
 
   isd = G%isd ; ied = G%ied ; jsd = G%jsd ; jed = G%jed
   IsdB = G%IsdB ; IedB = G%IedB ; JsdB = G%JsdB ; JedB = G%JedB
@@ -644,7 +644,7 @@ subroutine MOM_grid_end(G)
   DEALLOC_(G%sin_rot) ; DEALLOC_(G%cos_rot)
 
   !PIK_basal
-  if (present(PIK_basal)) then
+  if (present(G%PIK_basal)) then
     DEALLOC_(G%basal_depth)
   endif
   
