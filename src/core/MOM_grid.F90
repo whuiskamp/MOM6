@@ -67,6 +67,7 @@ type, public :: ocean_grid_type
   logical :: symmetric  !< True if symmetric memory is used.
   logical :: nonblocking_updates  !< If true, non-blocking halo updates are
                                   !! allowed.  The default is .false. (for now).
+  logical :: basal      !< True if basal melt from PIK_basal is present.
   integer :: first_direction !< An integer that indicates which direction is
                              !! to be updated first in directionally split
                              !! parts of the calculation.  This can be altered
@@ -226,7 +227,7 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
                  "in the y-direction on each processor (for openmp).", default=1, &
                  layoutParam=.true.)
   !PIK_basal
-  call get_param(param_file, mod_PIK, PIK_basal, "Logical option for "// &
+  call get_param(param_file, mod_PIK, "PIK_basal",G%basal, "Logical option for "// &
                  "inclusion of sub-shelf melt at depth.", default=.false.)
   if (present(US)) then ; if (associated(US)) G%US => US ; endif
 
