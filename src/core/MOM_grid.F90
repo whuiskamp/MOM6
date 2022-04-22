@@ -645,7 +645,7 @@ subroutine MOM_grid_end(G)
   DEALLOC_(G%sin_rot) ; DEALLOC_(G%cos_rot)
 
   !PIK_basal
-  if (present(G%PIK_basal)) then
+  if (G%basal) then
     DEALLOC_(G%basal_depth)
   endif
   
