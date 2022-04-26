@@ -605,7 +605,7 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
 
     if (present(basal_thk)) then !PIK_basal - Convert mass flux from basal melt
       basal_thk(i) = dt * scale * fluxes%basal(i,j)
-      basal_heat(i)= dt * scale * I_Cp_Hconvert * fluxes%basal_hflx(i,j)
+      basal_heat(i)= dt * scale * I_Cp_Hconvert * fluxes%heat_content_basal(i,j)
     endif
 
     ! smg:
@@ -1183,8 +1183,11 @@ subroutine MOM_forcing_chksum(mesg, fluxes, G, US, haloshift)
                  haloshift=hshift, scale=US%QRZ_T_to_W_m2)
 
   ! PIK_basal
-  if (associated(fluxes%basal)) &
+  if (associated(fluxes%basal)) then
     call hchksum(fluxes%basal, mesg//" fluxes%basal_an", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)  
+    call hchksum(fluxes%heat_content_basal, mesg//"fluxes%heat_content_basal", G%HI, &
+                 haloshift=hshift, scale=US%QRZ_T_to_W_m2)
+  endif
 
 end subroutine MOM_forcing_chksum
 
@@ -2147,6 +2150,13 @@ subroutine fluxes_accumulate(flux_tmp, fluxes, G, wt2, forces)
 
     fluxes%salt_flux(i,j) = wt1*fluxes%salt_flux(i,j) + wt2*flux_tmp%salt_flux(i,j)
   enddo ; enddo
+  ! PIK_Basal
+  if (associated(fluxes%basal)) then
+    do j=js,je ; do i=is,ie
+      fluxes%basal(i,j) = wt1*fluxes%basal(i,j) + wt2*flux_tmp%basal(i,j)
+      fluxes%basal(i,j) = wt1*fluxes%heat_content_basal(i,j) + wt2*flux_tmp%heat_content_basal(i,j)
+    enddo ; enddo
+  endif
   if (associated(fluxes%heat_added) .and. associated(flux_tmp%heat_added)) then
     do j=js,je ; do i=is,ie
       fluxes%heat_added(i,j) = wt1*fluxes%heat_added(i,j) + wt2*flux_tmp%heat_added(i,j)
@@ -2317,6 +2327,7 @@ end subroutine set_net_mass_forcing
 
 !> This subroutine calculates determines the net mass source to the ocean from
 !! a (thermodynamic) forcing type and stores it in a provided array.
+! PIK_basal - pretty sure we don't want to add the basal mass flux here, but keep in mind.
 subroutine get_net_mass_forcing(fluxes, G, US, net_mass_src)
   type(forcing),                    intent(in)  :: fluxes !< A structure containing thermodynamic forcing fields
   type(ocean_grid_type),            intent(in)  :: G      !< The ocean grid type
@@ -2490,6 +2501,8 @@ subroutine forcing_diagnostics(fluxes_in, sfc_state, G_in, US, time_end, diag, h
         if (associated(fluxes%frunoff))     res(i,j) = res(i,j) + RZ_T_conversion*fluxes%frunoff(i,j)
         if (associated(fluxes%vprec))       res(i,j) = res(i,j) + RZ_T_conversion*fluxes%vprec(i,j)
         if (associated(fluxes%seaice_melt)) res(i,j) = res(i,j) + RZ_T_conversion*fluxes%seaice_melt(i,j)
+        !PIK_basal
+        if (associated(fluxes%basal))       res(i,j) = res(i,j) + RZ_T_conversion*fluxes%basal(i,j)
       enddo ; enddo
       if (handles%id_prcme > 0) call post_data(handles%id_prcme, res, diag)
       if (handles%id_total_prcme > 0) then
@@ -2553,6 +2566,10 @@ subroutine forcing_diagnostics(fluxes_in, sfc_state, G_in, US, time_end, diag, h
         if (associated(fluxes%seaice_melt)) then
           if (fluxes%seaice_melt(i,j) > 0.0) &
             res(i,j) = res(i,j) + RZ_T_conversion*fluxes%seaice_melt(i,j)
+        endif
+        !PIK_basal
+        if (associated(fluxes%basal)) then
+          if (fluxes%basal(i,j) > 0.0) res(i,j) = res(i,j) + RZ_T_conversion*fluxes%basal(i,j)
         endif
       enddo ; enddo
       if (handles%id_net_massin > 0) call post_data(handles%id_net_massin, res, diag)
@@ -2651,6 +2668,15 @@ subroutine forcing_diagnostics(fluxes_in, sfc_state, G_in, US, time_end, diag, h
       endif
     endif
 
+    !PIK_basal
+    if (associated(fluxes%basal)) then
+    if (handles%id_basal > 0) call post_data(handles%id_basal, fluxes%basal, diag)
+      if (handles%id_total_basal > 0) then
+        total_transport = global_area_integral(fluxes%basal, G, scale=US%RZ_T_to_kg_m2s)
+        call post_data(handles%id_total_basal, total_transport, diag)
+      endif
+    endif
+
     ! post diagnostics for boundary heat fluxes ====================================
 
     if ((handles%id_heat_content_lrunoff > 0) .and. associated(fluxes%heat_content_lrunoff))  &
@@ -2714,6 +2740,14 @@ subroutine forcing_diagnostics(fluxes_in, sfc_state, G_in, US, time_end, diag, h
     if ((handles%id_total_heat_content_massin > 0) .and. associated(fluxes%heat_content_massin)) then
       total_transport = global_area_integral(fluxes%heat_content_massin, G, scale=US%QRZ_T_to_W_m2)
       call post_data(handles%id_total_heat_content_massin, total_transport, diag)
+    endif
+
+    !PIK_basal
+    if ((handles%id_heat_content_basal > 0) .and. associated(fluxes%heat_content_basal))      &
+      call post_data(handles%id_heat_content_basal, fluxes%heat_content_basal, diag)
+    if ((handles%id_total_heat_content_basal > 0) .and. associated(fluxes%heat_content_basal)) then
+      total_transport = global_area_integral(fluxes%heat_content_basal, G, scale=US%QRZ_T_to_W_m2)
+      call post_data(handles%id_total_heat_content_basal, total_transport, diag)
     endif
 
     if (handles%id_net_heat_coupler > 0 .or. handles%id_total_net_heat_coupler > 0 .or. &
@@ -3064,6 +3098,10 @@ subroutine allocate_forcing_by_group(G, fluxes, water, heat, ustar, press, &
   isd  = G%isd   ; ied  = G%ied    ; jsd  = G%jsd   ; jed  = G%jed
   IsdB = G%IsdB  ; IedB = G%IedB   ; JsdB = G%JsdB  ; JedB = G%JedB
 
+  if (G%basal) then ! If PIK_basal is active, allocate the variables we need.
+    call myAlloc(fluxes%basal,isd,ied,jsd,jed, water)
+    call myAlloc(fluxes%heat_content_basal,isd,ied,jsd,jed, .true.)
+  end
   call myAlloc(fluxes%ustar,isd,ied,jsd,jed, ustar)
   call myAlloc(fluxes%ustar_gustless,isd,ied,jsd,jed, ustar)
 
@@ -3378,6 +3416,9 @@ subroutine deallocate_forcing_type(fluxes)
   if (associated(fluxes%u10_sqr))              deallocate(fluxes%u10_sqr)
   if (associated(fluxes%cfc11_flux))           deallocate(fluxes%cfc11_flux)
   if (associated(fluxes%cfc12_flux))           deallocate(fluxes%cfc12_flux)
+  !PIK_basal
+  if (associated(fluxes%basal))                deallocate(fluxes%basal)
+  if (associated(fluxes%heat_content_basal))   deallocate(fluxes%heat_content_basal)
 
   call coupler_type_destructor(fluxes%tr_fluxes)
 
@@ -3415,6 +3456,11 @@ subroutine rotate_forcing(fluxes_in, fluxes, turns)
 
   call get_forcing_groups(fluxes_in, do_water, do_heat, do_ustar, do_press, &
       do_shelf, do_iceberg, do_salt, do_heat_added, do_buoy)
+
+  if (associated(fluxes%basal)) then
+    call rotate_array(fluxes_in%basal, turns, fluxes%basal)
+    call rotate_array(fluxes_in%heat_content_basal, fluxes%heat_content_basal)
+  endif
 
   if (do_ustar) then
     call rotate_array(fluxes_in%ustar, turns, fluxes%ustar)
