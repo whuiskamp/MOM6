@@ -3101,7 +3101,7 @@ subroutine allocate_forcing_by_group(G, fluxes, water, heat, ustar, press, &
   if (G%basal) then ! If PIK_basal is active, allocate the variables we need.
     call myAlloc(fluxes%basal,isd,ied,jsd,jed, water)
     call myAlloc(fluxes%heat_content_basal,isd,ied,jsd,jed, .true.)
-  end
+  endif
   call myAlloc(fluxes%ustar,isd,ied,jsd,jed, ustar)
   call myAlloc(fluxes%ustar_gustless,isd,ied,jsd,jed, ustar)
 
