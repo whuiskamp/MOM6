@@ -1567,7 +1567,7 @@ subroutine surface_forcing_init(Time, G, US, param_file, diag, CS, wind_stagger)
                  "If true, makes available diagnostics of fluxes from icebergs "//&
                  "as seen by MOM6.", default=.false.)
   call register_forcing_type_diags(Time, diag, US, CS%use_temperature, CS%handles, &
-                                   use_berg_fluxes=iceberg_flux_diags)
+                                   use_berg_fluxes=iceberg_flux_diags,PIK_basal=G%basal)
 
   call get_param(param_file, mdl, "ALLOW_FLUX_ADJUSTMENTS", CS%allow_flux_adjustments, &
                  "If true, allows flux adjustments to specified via the "//&
