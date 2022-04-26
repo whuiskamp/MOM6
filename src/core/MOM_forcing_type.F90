@@ -3459,7 +3459,7 @@ subroutine rotate_forcing(fluxes_in, fluxes, turns)
 
   if (associated(fluxes%basal)) then
     call rotate_array(fluxes_in%basal, turns, fluxes%basal)
-    call rotate_array(fluxes_in%heat_content_basal, fluxes%heat_content_basal)
+    call rotate_array(fluxes_in%heat_content_basal, turns, fluxes%heat_content_basal)
   endif
 
   if (do_ustar) then
