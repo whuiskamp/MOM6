@@ -182,10 +182,11 @@ subroutine set_grid_metrics_from_mosaic(G, param_file, US)
   real, dimension(2*G%isd-3:2*G%ied+1,2*G%jsd-3:2*G%jed+1) :: tmpZ
   real, dimension(:,:), allocatable :: tmpGlbl
   real :: m_to_L  ! A unit conversion factor [L m-1 ~> nondim]
-  character(len=200) :: filename, grid_file, inputdir, PIK_basal, basal_file, basal_name !PIK_basal
+  character(len=200) :: filename, grid_file, inputdir, basal_file, basal_name !PIK_basal
   character(len=64)  :: mdl = "MOM_grid_init set_grid_metrics_from_mosaic PIK_basal" ! PIK_basal
   type(MOM_domain_type), pointer :: SGdom => NULL() ! Supergrid domain
   logical :: lon_bug  ! If true use an older buggy answer in the tripolar longitude.
+  !logical :: PIK_basal
   integer :: i, j, i2, j2, ni, nj
   integer :: start(4), nread(4)
 
@@ -208,16 +209,16 @@ subroutine set_grid_metrics_from_mosaic(G, param_file, US)
                            trim(filename))
 
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! PIK_basal !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  call get_param(param_file, mdl, "PIK_basal", PIK_basal, &
-                 "True if sub-shelf melt scheme is active", &
-                 default=.false.)
+  !call get_param(param_file, mdl, "PIK_basal", PIK_basal, &
+  !               "True if sub-shelf melt scheme is active", &
+  !               default=.false.)
 
-  if (PIK_basal) then
+  if (G%basal) then
     call get_param(param_file, mdl, "basal_file", basal_file, &
                    "Name of the file in which all basal melt data is stored", &
                    fail_if_missing=.true.)
     basal_name = trim(adjustl(inputdir)) // trim(adjustl(basal_file))
-    call log_param(param_file, mdl, "INPUTDIR/GRID_FILE", grid_file)
+    call log_param(param_file, mdl, "INPUTDIR/GRID_FILE", basal_file)
     if (.not.file_exists(basal_file)) &
       call MOM_error(FATAL," Unable to open basal_file: "//&
                             trim(basal_file))
