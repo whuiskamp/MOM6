@@ -9,7 +9,6 @@ use MOM_domains, only : get_global_shape, deallocate_MOM_domain
 use MOM_error_handler, only : MOM_error, MOM_mesg, FATAL
 use MOM_file_parser, only : get_param, log_param, log_version, param_file_type
 use MOM_unit_scaling, only : unit_scale_type
-use MOM_io,           only : slasher
 
 implicit none ; private
 
@@ -395,11 +394,11 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
   
   if (G%basal) then
     call get_param(param_file,  mdl, "INPUTDIR", inputdir, default=".")
-    inputdir = slasher(inputdir)
+    
     call get_param(param_file, mdl, "basal_file", basal_file, &
                    "Name of the file in which all basal melt data is stored", &
                    fail_if_missing=.true.)
-    basal_name = trim(adjustl(inputdir)) // trim(adjustl(basal_file))
+    basal_name = trim(adjustl(inputdir)) // '/' // trim(adjustl(basal_file))
     call log_param(param_file, mdl, "INPUTDIR/GRID_FILE", basal_file)
     if (.not.file_exists(basal_file)) &
       call MOM_error(FATAL," Unable to open basal_file: "//&
