@@ -213,7 +213,7 @@ subroutine set_grid_metrics_from_mosaic(G, param_file, US)
   !               "True if sub-shelf melt scheme is active", &
   !               default=.false.)
 
-  if associated(G%basal_depth) then
+  if (associated(G%basal_depth)) then
     call get_param(param_file, mdl, "basal_file", basal_file, &
                    "Name of the file in which all basal melt data is stored", &
                    fail_if_missing=.true.)
