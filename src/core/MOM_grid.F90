@@ -9,6 +9,7 @@ use MOM_domains, only : get_global_shape, deallocate_MOM_domain
 use MOM_error_handler, only : MOM_error, MOM_mesg, FATAL
 use MOM_file_parser, only : get_param, log_param, log_version, param_file_type
 use MOM_unit_scaling, only : unit_scale_type
+use MOM_io,           only : slasher
 
 implicit none ; private
 
@@ -206,13 +207,15 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
   integer :: niblock, njblock, nihalo, njhalo, nblocks, n, i, j
   logical :: local_indexing  ! If false use global index values instead of having
                              ! the data domain on each processor start at 1.
-  logical :: PIK_basal       ! If true, PIK_basal routines are active
+  !logical :: PIK_basal       ! If true, PIK_basal routines are active
   ! This include declares and sets the variable "version".
 # include "version_variable.h"
 
   integer, allocatable, dimension(:) :: ibegin, iend, jbegin, jend
   character(len=40)  :: mod_nm  = "MOM_grid" ! This module's name.
   character(len=40)  :: mod_PIK = "PIK_basal" ! Custom options from our runoff module
+  character(len=200) :: basal_file, basal_name, inputdir ! PIK_basal
+  character(len=64)  :: mdl = "MOM_grid_init set_grid_metrics_from_mosaic PIK_basal" ! PIK_basal
 
   ! Read all relevant parameters and write them to the model log.
   call get_param(param_file, mod_nm, "REFERENCE_HEIGHT", G%Z_ref, default=0.0, do_not_log=.true.)
@@ -283,7 +286,7 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
 
   call MOM_mesg("  MOM_grid.F90, MOM_grid_init: allocating metrics", 5)
 
-  call allocate_metrics(G,PIK_basal)
+  call allocate_metrics(G)
 
   isd = G%isd ; ied = G%ied ; jsd = G%jsd ; jed = G%jed
   IsdB = G%IsdB ; IedB = G%IedB ; JsdB = G%JsdB ; JedB = G%JedB
@@ -387,6 +390,27 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
   G%HId2%IecB = G%HId2%iec ; G%HId2%JecB = G%HId2%jec
   G%HId2%IedB = G%HId2%ied ; G%HId2%JedB = G%HId2%jed
   G%HId2%IegB = G%HId2%ieg ; G%HId2%JegB = G%HId2%jeg
+
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! PIK_basal !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  
+  if (G%basal) then
+    call get_param(param_file,  mdl, "INPUTDIR", inputdir, default=".")
+    inputdir = slasher(inputdir)
+    call get_param(param_file, mdl, "basal_file", basal_file, &
+                   "Name of the file in which all basal melt data is stored", &
+                   fail_if_missing=.true.)
+    basal_name = trim(adjustl(inputdir)) // trim(adjustl(basal_file))
+    call log_param(param_file, mdl, "INPUTDIR/GRID_FILE", basal_file)
+    if (.not.file_exists(basal_file)) &
+      call MOM_error(FATAL," Unable to open basal_file: "//&
+                            trim(basal_file))
+    tempH1(:,:) = 0.0 ! This isn't used for anything else, so why not.
+    call MOM_read_data(basal_file,'basal_depth',G%basal_depth,G%Domain,timelevel=1)
+    !do j=G%jsd,G%jed ; do i=G%isd,G%ied
+    !  G%basal_depth(i,j) = tempH1(i,j)
+    !enddo ; enddo
+  endif    
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! PIK_basal !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 end subroutine MOM_grid_init
 
@@ -532,11 +556,10 @@ subroutine get_global_grid_size(G, niglobal, njglobal)
 end subroutine get_global_grid_size
 
 !> Allocate memory used by the ocean_grid_type and related structures.
-subroutine allocate_metrics(G,PIK_basal)
+subroutine allocate_metrics(G)
   type(ocean_grid_type), intent(inout) :: G !< The horizontal grid type
   integer :: isd, ied, jsd, jed, IsdB, IedB, JsdB, JedB, isg, ieg, jsg, jeg
-  logical, intent(in) :: PIK_basal ! If true, PIK_basal routines are active
-
+  
   ! This subroutine allocates the lateral elements of the ocean_grid_type that
   ! are always used and zeros them out.
 
@@ -597,7 +620,7 @@ subroutine allocate_metrics(G,PIK_basal)
   ALLOC_(G%cos_rot(isd:ied,jsd:jed)) ; G%cos_rot(:,:) = 1.0
 
   !PIK_basal - double check dimensions
-  if (PIK_basal) then
+  if (G%basal) then
     ALLOC_(G%basal_depth(isd:ied,jsd:jed)) ; G%basal_depth(:,:) = 0
   endif
 
