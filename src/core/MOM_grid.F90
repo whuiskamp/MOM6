@@ -400,10 +400,6 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
                    fail_if_missing=.true.)
     basal_name = trim(adjustl(inputdir)) // '/' // trim(adjustl(basal_file))
     call log_param(param_file, mdl, "INPUTDIR/GRID_FILE", basal_file)
-    if (.not.file_exists(basal_file)) &
-      call MOM_error(FATAL," Unable to open basal_file: "//&
-                            trim(basal_file))
-    tempH1(:,:) = 0.0 ! This isn't used for anything else, so why not.
     call MOM_read_data(basal_file,'basal_depth',G%basal_depth,G%Domain,timelevel=1)
     !do j=G%jsd,G%jed ; do i=G%isd,G%ied
     !  G%basal_depth(i,j) = tempH1(i,j)
