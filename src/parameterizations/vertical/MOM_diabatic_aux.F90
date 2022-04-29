@@ -1035,9 +1035,8 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
   real :: dThickness, dTemp, dSalt
   real :: fractionOfForcing, hOld, Ithickness
   real :: RivermixConst  ! A constant used in implementing river mixing [R Z2 T-1 ~> Pa s].
-  if (CS%PIK_basal) then
-    real :: dthk_basal
-  endif
+  real :: dthk_basal
+  
 
   real, dimension(SZI_(G)) :: &
     d_pres,       &  ! pressure change across a layer [R L2 T-2 ~> Pa]
@@ -1059,12 +1058,9 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
     netsalt_rate, &  ! netsalt but for dt=1 (e.g. returns a rate)
                      ! [ppt H T-1 ~> ppt m s-1 or ppt kg m-2 s-1]
     netMassInOut_rate! netmassinout but for dt=1 [H T-1 ~> m s-1 or kg m-2 s-1]
-  if (CS%PIK_basal) then
-    real, dimension(SZI_(G)) :: &
-      basal_thk,  &  ! basal mass flux from PIK_basal routines
-      basal_heat, &  ! basal heat flux from PIK_basal routines
-      basal_depth &  ! depth of insertion for basal mass and heat fluxes
-  endif
+    basal_thk,    &  ! basal mass flux from PIK_basal routines
+    basal_heat,   &  ! basal heat flux from PIK_basal routines
+    basal_depth   &  ! depth of insertion for basal mass and heat fluxes
   
   real, dimension(SZI_(G), SZK_(GV)) :: &
     h2d, &           ! A 2-d copy of the thicknesses [H ~> m or kg m-2]
