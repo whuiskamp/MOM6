@@ -205,7 +205,6 @@ subroutine create_dyn_horgrid(G, HI, bathymetry_at_vel)
   G%symmetric = HI%symmetric
 
   G%bathymetry_at_vel = .false.
-  G%basal = .false. ! PIK_basal
   if (present(bathymetry_at_vel)) G%bathymetry_at_vel = bathymetry_at_vel
 
   isd = G%isd ; ied = G%ied ; jsd = G%jsd ; jed = G%jed
@@ -277,9 +276,6 @@ subroutine create_dyn_horgrid(G, HI, bathymetry_at_vel)
   allocate(G%gridLonB(isg-1:ieg), source=0.0)
   allocate(G%gridLatT(jsg:jeg), source=0.0)
   allocate(G%gridLatB(jsg-1:jeg), source=0.0)
-
-  !PIK_basal
-  allocate(G%basal_depth(isd:ied, jsd:jed), source=0.0)
 
 end subroutine create_dyn_horgrid
 
