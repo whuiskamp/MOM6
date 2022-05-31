@@ -110,7 +110,7 @@ type, public :: forcing
     netMassIn   => NULL(), & !< Sum of water mass flux out of the ocean [kg m-2 s-1]
     netMassOut  => NULL(), & !< Net water mass flux into of the ocean [kg m-2 s-1]
     netSalt     => NULL(), & !< Net salt entering the ocean [kgSalt m-2 s-1]
-    basal       => NULL()    !< The sub-shelf melt entering the ocean [confirm units] !PIK_basal
+    basal_melt  => NULL()    !< The sub-shelf melt entering the ocean [confirm units] !PIK_basal
   
 
   ! heat associated with water crossing ocean surface
@@ -604,7 +604,7 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
     endif
 
     if (present(basal_thk)) then !PIK_basal - Convert mass flux from basal melt
-      basal_thk(i) = dt * scale * fluxes%basal(i,j)
+      basal_thk(i) = dt * scale * fluxes%basal_melt(i,j)
       basal_heat(i)= dt * scale * I_Cp_Hconvert * fluxes%heat_content_basal(i,j)
     endif
 
@@ -1183,8 +1183,8 @@ subroutine MOM_forcing_chksum(mesg, fluxes, G, US, haloshift)
                  haloshift=hshift, scale=US%QRZ_T_to_W_m2)
 
   ! PIK_basal
-  if (associated(fluxes%basal)) then
-    call hchksum(fluxes%basal, mesg//" fluxes%basal_an", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)  
+  if (associated(fluxes%basal_melt)) then
+    call hchksum(fluxes%basal_melt, mesg//" fluxes%basal_an", G%HI, haloshift=hshift, scale=US%RZ_T_to_kg_m2s)  
     call hchksum(fluxes%heat_content_basal, mesg//"fluxes%heat_content_basal", G%HI, &
                  haloshift=hshift, scale=US%QRZ_T_to_W_m2)
   endif
@@ -1283,7 +1283,7 @@ subroutine forcing_SinglePointPrint(fluxes, G, i, j, mesg)
   call locMsg(fluxes%ustar_tidal,'ustar_tidal')
   call locMsg(fluxes%lrunoff,'lrunoff')
   call locMsg(fluxes%frunoff,'frunoff')
-  call locMsg(fluxes%basal,'basal') ! PIK_basal
+  call locMsg(fluxes%basal_melt,'basal') ! PIK_basal
   call locMsg(fluxes%heat_content_lrunoff,'heat_content_lrunoff')
   call locMsg(fluxes%heat_content_frunoff,'heat_content_frunoff')
   call locMsg(fluxes%heat_content_basal,'heat_content_basal') ! PIK_basal
@@ -2151,10 +2151,10 @@ subroutine fluxes_accumulate(flux_tmp, fluxes, G, wt2, forces)
     fluxes%salt_flux(i,j) = wt1*fluxes%salt_flux(i,j) + wt2*flux_tmp%salt_flux(i,j)
   enddo ; enddo
   ! PIK_Basal
-  if (associated(fluxes%basal)) then
+  if (associated(fluxes%basal_melt)) then
     do j=js,je ; do i=is,ie
-      fluxes%basal(i,j) = wt1*fluxes%basal(i,j) + wt2*flux_tmp%basal(i,j)
-      fluxes%basal(i,j) = wt1*fluxes%heat_content_basal(i,j) + wt2*flux_tmp%heat_content_basal(i,j)
+      fluxes%basal_melt(i,j) = wt1*fluxes%basal_melt(i,j) + wt2*flux_tmp%basal(i,j)
+      fluxes%basal_melt(i,j) = wt1*fluxes%heat_content_basal(i,j) + wt2*flux_tmp%heat_content_basal(i,j)
     enddo ; enddo
   endif
   if (associated(fluxes%heat_added) .and. associated(flux_tmp%heat_added)) then
@@ -2502,7 +2502,7 @@ subroutine forcing_diagnostics(fluxes_in, sfc_state, G_in, US, time_end, diag, h
         if (associated(fluxes%vprec))       res(i,j) = res(i,j) + RZ_T_conversion*fluxes%vprec(i,j)
         if (associated(fluxes%seaice_melt)) res(i,j) = res(i,j) + RZ_T_conversion*fluxes%seaice_melt(i,j)
         !PIK_basal
-        if (associated(fluxes%basal))       res(i,j) = res(i,j) + RZ_T_conversion*fluxes%basal(i,j)
+        if (associated(fluxes%basal_melt))  res(i,j) = res(i,j) + RZ_T_conversion*fluxes%basal_melt(i,j)
       enddo ; enddo
       if (handles%id_prcme > 0) call post_data(handles%id_prcme, res, diag)
       if (handles%id_total_prcme > 0) then
@@ -2569,7 +2569,7 @@ subroutine forcing_diagnostics(fluxes_in, sfc_state, G_in, US, time_end, diag, h
         endif
         !PIK_basal
         if (associated(fluxes%basal)) then
-          if (fluxes%basal(i,j) > 0.0) res(i,j) = res(i,j) + RZ_T_conversion*fluxes%basal(i,j)
+          if (fluxes%basal_melt(i,j) > 0.0) res(i,j) = res(i,j) + RZ_T_conversion*fluxes%basal_melt(i,j)
         endif
       enddo ; enddo
       if (handles%id_net_massin > 0) call post_data(handles%id_net_massin, res, diag)
@@ -2669,10 +2669,10 @@ subroutine forcing_diagnostics(fluxes_in, sfc_state, G_in, US, time_end, diag, h
     endif
 
     !PIK_basal
-    if (associated(fluxes%basal)) then
-    if (handles%id_basal > 0) call post_data(handles%id_basal, fluxes%basal, diag)
+    if (associated(fluxes%basal_melt)) then
+    if (handles%id_basal > 0) call post_data(handles%id_basal, fluxes%basal_melt, diag)
       if (handles%id_total_basal > 0) then
-        total_transport = global_area_integral(fluxes%basal, G, scale=US%RZ_T_to_kg_m2s)
+        total_transport = global_area_integral(fluxes%basal_melt, G, scale=US%RZ_T_to_kg_m2s)
         call post_data(handles%id_total_basal, total_transport, diag)
       endif
     endif
@@ -3098,8 +3098,8 @@ subroutine allocate_forcing_by_group(G, fluxes, water, heat, ustar, press, &
   isd  = G%isd   ; ied  = G%ied    ; jsd  = G%jsd   ; jed  = G%jed
   IsdB = G%IsdB  ; IedB = G%IedB   ; JsdB = G%JsdB  ; JedB = G%JedB
 
-  if (G%basal) then ! If PIK_basal is active, allocate the variables we need.
-    call myAlloc(fluxes%basal,isd,ied,jsd,jed, water)
+  if (G%PIK_basal) then ! If PIK_basal is active, allocate the variables we need.
+    call myAlloc(fluxes%basal_melt,isd,ied,jsd,jed, water)
     call myAlloc(fluxes%heat_content_basal,isd,ied,jsd,jed, .true.)
   endif
   call myAlloc(fluxes%ustar,isd,ied,jsd,jed, ustar)
@@ -3417,7 +3417,7 @@ subroutine deallocate_forcing_type(fluxes)
   if (associated(fluxes%cfc11_flux))           deallocate(fluxes%cfc11_flux)
   if (associated(fluxes%cfc12_flux))           deallocate(fluxes%cfc12_flux)
   !PIK_basal
-  if (associated(fluxes%basal))                deallocate(fluxes%basal)
+  if (associated(fluxes%basal_melt))           deallocate(fluxes%basal_melt)
   if (associated(fluxes%heat_content_basal))   deallocate(fluxes%heat_content_basal)
 
   call coupler_type_destructor(fluxes%tr_fluxes)
@@ -3457,8 +3457,8 @@ subroutine rotate_forcing(fluxes_in, fluxes, turns)
   call get_forcing_groups(fluxes_in, do_water, do_heat, do_ustar, do_press, &
       do_shelf, do_iceberg, do_salt, do_heat_added, do_buoy)
 
-  if (associated(fluxes%basal)) then
-    call rotate_array(fluxes_in%basal, turns, fluxes%basal)
+  if (associated(fluxes%basal_melt)) then
+    call rotate_array(fluxes_in%basal, turns, fluxes%basal_melt)
     call rotate_array(fluxes_in%heat_content_basal, turns, fluxes%heat_content_basal)
   endif
 
