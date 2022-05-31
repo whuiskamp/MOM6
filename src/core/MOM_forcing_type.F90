@@ -2154,7 +2154,7 @@ subroutine fluxes_accumulate(flux_tmp, fluxes, G, wt2, forces)
   if (associated(fluxes%basal_melt)) then
     do j=js,je ; do i=is,ie
       fluxes%basal_melt(i,j) = wt1*fluxes%basal_melt(i,j) + wt2*flux_tmp%basal(i,j)
-      fluxes%basal_melt(i,j) = wt1*fluxes%heat_content_basal(i,j) + wt2*flux_tmp%heat_content_basal(i,j)
+      fluxes%heat_content_basal(i,j) = wt1*fluxes%heat_content_basal(i,j) + wt2*flux_tmp%heat_content_basal(i,j)
     enddo ; enddo
   endif
   if (associated(fluxes%heat_added) .and. associated(flux_tmp%heat_added)) then
@@ -2568,7 +2568,7 @@ subroutine forcing_diagnostics(fluxes_in, sfc_state, G_in, US, time_end, diag, h
             res(i,j) = res(i,j) + RZ_T_conversion*fluxes%seaice_melt(i,j)
         endif
         !PIK_basal
-        if (associated(fluxes%basal)) then
+        if (associated(fluxes%basal_melt)) then
           if (fluxes%basal_melt(i,j) > 0.0) res(i,j) = res(i,j) + RZ_T_conversion*fluxes%basal_melt(i,j)
         endif
       enddo ; enddo
