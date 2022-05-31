@@ -67,7 +67,7 @@ type, public :: ocean_grid_type
   logical :: symmetric  !< True if symmetric memory is used.
   logical :: nonblocking_updates  !< If true, non-blocking halo updates are
                                   !! allowed.  The default is .false. (for now).
-  logical :: basal      !< True if basal melt from PIK_basal is present.
+  logical :: PIK_basal       !< True if basal melt from PIK_basal is present.
   integer :: first_direction !< An integer that indicates which direction is
                              !! to be updated first in directionally split
                              !! parts of the calculation.  This can be altered
@@ -157,9 +157,6 @@ type, public :: ocean_grid_type
     df_dx, &      !< Derivative d/dx f (Coriolis parameter) at h-points [T-1 L-1 ~> s-1 m-1].
     df_dy         !< Derivative d/dy f (Coriolis parameter) at h-points [T-1 L-1 ~> s-1 m-1].
 
-  real ALLOCABLE_, dimension(NIMEM_,NJMEM_) :: &
-    basal_depth   !< The depth at which the mass and heat fluxes from PIK_basal are to be inserted [m]
-
   ! These variables are global sums that are useful for 1-d diagnostics and should not be rescaled.
   real :: areaT_global  !< Global sum of h-cell area [m2]
   real :: IareaT_global !< Global sum of inverse h-cell area (1/areaT_global) [m-2].
@@ -206,15 +203,12 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
   integer :: niblock, njblock, nihalo, njhalo, nblocks, n, i, j
   logical :: local_indexing  ! If false use global index values instead of having
                              ! the data domain on each processor start at 1.
-  !logical :: PIK_basal       ! If true, PIK_basal routines are active
+
   ! This include declares and sets the variable "version".
 # include "version_variable.h"
 
   integer, allocatable, dimension(:) :: ibegin, iend, jbegin, jend
   character(len=40)  :: mod_nm  = "MOM_grid" ! This module's name.
-  character(len=40)  :: mod_PIK = "PIK_basal" ! Custom options from our runoff module
-  character(len=200) :: basal_file, basal_name, inputdir ! PIK_basal
-  character(len=64)  :: mdl = "MOM_grid_init set_grid_metrics_from_mosaic PIK_basal" ! PIK_basal
 
   ! Read all relevant parameters and write them to the model log.
   call get_param(param_file, mod_nm, "REFERENCE_HEIGHT", G%Z_ref, default=0.0, do_not_log=.true.)
@@ -229,8 +223,9 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
                  "in the y-direction on each processor (for openmp).", default=1, &
                  layoutParam=.true.)
   !PIK_basal
-  call get_param(param_file, mod_PIK, "PIK_basal",G%basal, "Logical option for "// &
-                 "inclusion of sub-shelf melt at depth.", default=.false.)
+  call get_param(param_file, mod_nm, "PIK_basal",G%PIK_basal, &
+       "Logical option for inclusion of sub-shelf basal melt at depth with PISM-PICO.", &
+       default=.false.)
   if (present(US)) then ; if (associated(US)) G%US => US ; endif
 
   mean_SeaLev_scale = 1.0 ;  if (associated(G%US)) mean_SeaLev_scale = G%US%m_to_Z
@@ -389,23 +384,6 @@ subroutine MOM_grid_init(G, param_file, US, HI, global_indexing, bathymetry_at_v
   G%HId2%IecB = G%HId2%iec ; G%HId2%JecB = G%HId2%jec
   G%HId2%IedB = G%HId2%ied ; G%HId2%JedB = G%HId2%jed
   G%HId2%IegB = G%HId2%ieg ; G%HId2%JegB = G%HId2%jeg
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! PIK_basal !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  
-  if (G%basal) then
-    call get_param(param_file,  mdl, "INPUTDIR", inputdir, default=".")
-    
-    call get_param(param_file, mdl, "basal_file", basal_file, &
-                   "Name of the file in which all basal melt data is stored", &
-                   fail_if_missing=.true.)
-    basal_name = trim(adjustl(inputdir)) // '/' // trim(adjustl(basal_file))
-    call log_param(param_file, mdl, "INPUTDIR/GRID_FILE", basal_file)
-    call MOM_read_data(basal_file,'basal_depth',G%basal_depth,G%Domain,timelevel=1)
-    !do j=G%jsd,G%jed ; do i=G%isd,G%ied
-    !  G%basal_depth(i,j) = tempH1(i,j)
-    !enddo ; enddo
-  endif    
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! PIK_basal !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 end subroutine MOM_grid_init
 
@@ -614,11 +592,6 @@ subroutine allocate_metrics(G)
   ALLOC_(G%sin_rot(isd:ied,jsd:jed)) ; G%sin_rot(:,:) = 0.0
   ALLOC_(G%cos_rot(isd:ied,jsd:jed)) ; G%cos_rot(:,:) = 1.0
 
-  !PIK_basal - double check dimensions
-  if (G%basal) then
-    ALLOC_(G%basal_depth(isd:ied,jsd:jed)) ; G%basal_depth(:,:) = 0
-  endif
-
   allocate(G%gridLonT(isg:ieg), source=0.0)
   allocate(G%gridLonB(G%IsgB:G%IegB), source=0.0)
   allocate(G%gridLatT(jsg:jeg), source=0.0)
@@ -662,11 +635,6 @@ subroutine MOM_grid_end(G)
   DEALLOC_(G%dF_dx)  ; DEALLOC_(G%dF_dy)
   DEALLOC_(G%sin_rot) ; DEALLOC_(G%cos_rot)
 
-  !PIK_basal
-  if (G%basal) then
-    DEALLOC_(G%basal_depth)
-  endif
-  
   deallocate(G%gridLonT) ; deallocate(G%gridLatT)
   deallocate(G%gridLonB) ; deallocate(G%gridLatB)
 

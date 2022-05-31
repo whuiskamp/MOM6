@@ -452,7 +452,7 @@ subroutine convert_IOB_to_fluxes(IOB, fluxes, index_bounds, Time, valid_time, G,
     endif
     
     if (associated(IOB%basal_hflx)) then
-      fluxes%basal_hflx(i,j) = US%W_m2_to_QRZ_T * IOB%basal_hflx(i-i0,j-j0) * G%mask2dT(i,j)
+      fluxes%heat_content_basal(i,j) = US%W_m2_to_QRZ_T * IOB%basal_hflx(i-i0,j-j0) * G%mask2dT(i,j)
       if (CS%check_no_land_fluxes) &
         call check_mask_val_consistency(IOB%basal_hflx(i-i0,j-j0), G%mask2dT(i,j), i, j, 'basal_hflx', G)
     endif

@@ -16,7 +16,7 @@ use MOM_file_parser,   only : get_param, log_param, log_version, param_file_type
 use MOM_forcing_type,  only : forcing, extractFluxes1d, forcing_SinglePointPrint
 use MOM_grid,          only : ocean_grid_type
 use MOM_interpolate,   only : init_external_field, time_interp_external, time_interp_external_init
-use MOM_io,            only : slasher
+use MOM_io,            only : slasher, file_exists, MOM_read_data
 use MOM_opacity,       only : set_opacity, opacity_CS, extract_optics_slice, extract_optics_fields
 use MOM_opacity,       only : optics_type, optics_nbands, absorbRemainingSW, sumSWoverBands
 use MOM_tracer_flow_control, only : get_chl_from_model, tracer_flow_control_CS
@@ -92,6 +92,8 @@ end type diabatic_aux_CS
 !>@{ CPU time clock IDs
 integer :: id_clock_uv_at_h, id_clock_frazil
 !>@}
+
+real, allocatable, dimension(:,:) :: basal_depth !< The depth at which the mass and heat fluxes from PIK_basal are to be inserted [m]
 
 contains
 
@@ -1035,8 +1037,7 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
   real :: dThickness, dTemp, dSalt
   real :: fractionOfForcing, hOld, Ithickness
   real :: RivermixConst  ! A constant used in implementing river mixing [R Z2 T-1 ~> Pa s].
-  real :: dthk_basal
-  
+  real :: K_depth, Kp1_depth ! dthk_basal ! PIK_basal
 
   real, dimension(SZI_(G)) :: &
     d_pres,       &  ! pressure change across a layer [R L2 T-2 ~> Pa]
@@ -1059,7 +1060,7 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
                      ! [ppt H T-1 ~> ppt m s-1 or ppt kg m-2 s-1]
     netMassInOut_rate, &! netmassinout but for dt=1 [H T-1 ~> m s-1 or kg m-2 s-1]
     basal_thk,    &  ! basal mass flux from PIK_basal routines
-    basal_heat    &  ! basal heat flux from PIK_basal routines
+    basal_heat       ! basal heat flux from PIK_basal routines
       
   real, dimension(SZI_(G), SZK_(GV)) :: &
     h2d, &           ! A 2-d copy of the thicknesses [H ~> m or kg m-2]
@@ -1222,7 +1223,7 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
                   Pen_SW_bnd, tv, aggregate_FW_forcing, nonpenSW=nonpenSW,                &
                   net_Heat_rate=netheat_rate, net_salt_rate=netsalt_rate,                 &
                   netmassinout_rate=netmassinout_rate, pen_sw_bnd_rate=pen_sw_bnd_rate)
-    elseif (CS%PIK_basal) then !PIK_basal
+    elseif (G%PIK_basal) then !PIK_basal
       call extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt,          &
                   H_limit_fluxes, CS%use_river_heat_content, CS%use_calving_heat_content, &
                   h2d, T2d, netMassInOut, netMassOut, netHeat, netSalt,                   &
@@ -1400,21 +1401,21 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
         enddo ! k
 
         ! PIK_basal. 
-        if (PIK_basal) then
-          if (basal_thk(i,j) > 0.) then ! Check if any basal melt in cell
+        if (G%PIK_basal) then
+          if (basal_thk(i) > 0.) then ! Check if any basal melt in cell
             do k=1,nz-1
               K_depth = sum(h2d(i,0:k)) ! Check if depth of flux input is in current k-level
               Kp1_depth = sum(h2d(i,0:k+1))
-              if (K_depth < G%basal_depth(i,j)) .and. (G%basal_depth(i,j) < Kp1_depth) then
+              if ((K_depth < basal_depth(i,j)) .and. (basal_depth(i,j) < Kp1_depth)) then
                 hOld     = h2d(i,k)                  ! We need the initial thickness
-                h2d(i,k) = h2d(i,k) + basal_thk(i,j) ! Update thickness with basal melt
+                h2d(i,k) = h2d(i,k) + basal_thk(i) ! Update thickness with basal melt
                 Ithickness  = 1.0/h2d(i,k)           ! Inverse new thickness
                 !!!  Update temp. due to mass change !!!
-                dTemp = basal_thk(i,j)*T2d(i,k)
+                dTemp = basal_thk(i)*T2d(i,k)
                 T2d(i,k)    = (hOld*T2d(i,k) + dTemp)*Ithickness
                 tv%S(i,j,k) = (hOld*tv%S(i,j,k) + dSalt)*Ithickness
                 ! Update temp. due to heat flux
-                T2d(i,k)    = T2d(i,k) + basal_heat(i,j)*h2d(i,k)
+                T2d(i,k)    = T2d(i,k) + basal_heat(i)*h2d(i,k)
                 exit ! No need to search further down the column
               endif  
             enddo
@@ -1604,6 +1605,9 @@ subroutine diabatic_aux_init(Time, G, GV, US, param_file, diag, CS, useALEalgori
   character(len=32)  :: chl_varname ! Name of chl_a variable in chl_file.
   logical :: use_temperature     ! True if thermodynamics are enabled.
   integer :: isd, ied, jsd, jed, IsdB, IedB, JsdB, JedB, nz, nbands
+  character(len=200) :: basal_file, basal_name ! PIK_basal
+
+
   isd  = G%isd  ; ied  = G%ied  ; jsd  = G%jsd  ; jed  = G%jed ; nz = GV%ke
   IsdB = G%IsdB ; IedB = G%IedB ; JsdB = G%JsdB ; JedB = G%JedB
 
@@ -1637,10 +1641,6 @@ subroutine diabatic_aux_init(Time, G, GV, US, param_file, diag, CS, useALEalgori
                  "when making frazil. The default is false, which will be "//&
                  "faster but is inappropriate with ice-shelf cavities.", &
                  default=.false.)
-  ! PIK_basal
-  call get_param(param_file, mdl, "PIK_basal", CS%PIK_basal, &
-                 "If true, use the coupling interface for MOM6 with "//&
-                 "PISM-PICO.", default=.false.)
 
   if (use_ePBL) then
     call get_param(param_file, mdl, "IGNORE_FLUXES_OVER_LAND", CS%ignore_fluxes_over_land,&
@@ -1742,6 +1742,28 @@ subroutine diabatic_aux_init(Time, G, GV, US, param_file, diag, CS, useALEalgori
   id_clock_uv_at_h = cpu_clock_id('(Ocean find_uv_at_h)', grain=CLOCK_ROUTINE)
   id_clock_frazil  = cpu_clock_id('(Ocean frazil)', grain=CLOCK_ROUTINE)
 
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! PIK_basal !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  
+  if (G%PIK_basal) then
+    call get_param(param_file, mdl, "INPUTDIR", inputdir, default=".")
+    
+    call get_param(param_file, mdl, "basal_file", basal_file, &
+                   "Name of the file in which all basal melt data is stored", &
+                   fail_if_missing=.true.)
+    basal_name = trim(adjustl(inputdir)) // '/' // trim(adjustl(basal_file))
+    call log_param(param_file, mdl, "INPUTDIR/GRID_FILE", basal_file)
+    if (.not.file_exists(basal_file)) &
+         call MOM_error(FATAL," Cannot find basal_file: "//&
+         trim(basal_file))
+    allocate(basal_depth(isd:ied,jsd:jed))
+    call MOM_read_data(basal_file,'basal_depth',basal_depth,G%Domain)
+    !do j=G%jsd,G%jed ; do i=G%isd,G%ied
+    !  G%basal_depth(i,j) = tempH1(i,j)
+    !enddo ; enddo
+  endif    
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! PIK_basal !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
 end subroutine diabatic_aux_init
 
 !> This subroutine initializes the control structure and any related memory
@@ -1758,6 +1780,7 @@ subroutine diabatic_aux_end(CS)
   if (CS%id_nonpenSW_diag  >0) deallocate(CS%nonpenSW_diag)
 
   if (associated(CS)) deallocate(CS)
+  if (allocated(basal_depth)) deallocate(basal_depth)
 
 end subroutine diabatic_aux_end
 
