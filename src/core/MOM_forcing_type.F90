@@ -2153,7 +2153,7 @@ subroutine fluxes_accumulate(flux_tmp, fluxes, G, wt2, forces)
   ! PIK_Basal
   if (associated(fluxes%basal_melt)) then
     do j=js,je ; do i=is,ie
-      fluxes%basal_melt(i,j) = wt1*fluxes%basal_melt(i,j) + wt2*flux_tmp%basal(i,j)
+      fluxes%basal_melt(i,j) = wt1*fluxes%basal_melt(i,j) + wt2*flux_tmp%basal_melt(i,j)
       fluxes%heat_content_basal(i,j) = wt1*fluxes%heat_content_basal(i,j) + wt2*flux_tmp%heat_content_basal(i,j)
     enddo ; enddo
   endif
