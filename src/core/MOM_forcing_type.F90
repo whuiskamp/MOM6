@@ -3458,7 +3458,7 @@ subroutine rotate_forcing(fluxes_in, fluxes, turns)
       do_shelf, do_iceberg, do_salt, do_heat_added, do_buoy)
 
   if (associated(fluxes%basal_melt)) then
-    call rotate_array(fluxes_in%basal, turns, fluxes%basal_melt)
+    call rotate_array(fluxes_in%basal_melt, turns, fluxes%basal_melt)
     call rotate_array(fluxes_in%heat_content_basal, turns, fluxes%heat_content_basal)
   endif
 
