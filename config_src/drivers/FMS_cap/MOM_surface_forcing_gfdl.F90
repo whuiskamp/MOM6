@@ -446,7 +446,7 @@ subroutine convert_IOB_to_fluxes(IOB, fluxes, index_bounds, Time, valid_time, G,
 
     ! PIK_basal
     if (associated(IOB%basal)) then
-      fluxes%basal(i,j) = kg_m2_s_conversion * IOB%basal(i-i0,j-j0) * G%mask2dT(i,j)
+      fluxes%basal_melt(i,j) = kg_m2_s_conversion * IOB%basal(i-i0,j-j0) * G%mask2dT(i,j)
       if (CS%check_no_land_fluxes) &
         call check_mask_val_consistency(IOB%basal(i-i0,j-j0), G%mask2dT(i,j), i, j, 'basal', G)
     endif
@@ -603,7 +603,7 @@ subroutine convert_IOB_to_fluxes(IOB, fluxes, index_bounds, Time, valid_time, G,
     do j=js,je ; do i=is,ie
       net_FW(i,j) = US%RZ_T_to_kg_m2s* &
                     (((fluxes%lprec(i,j)   + fluxes%fprec(i,j)) + &
-                      (fluxes%lrunoff(i,j) + fluxes%frunoff(i,j) + fluxes%basal(i,j))) + &
+                      (fluxes%lrunoff(i,j) + fluxes%frunoff(i,j) + fluxes%basal_melt(i,j))) + &
                       (fluxes%evap(i,j)    + fluxes%vprec(i,j))) * US%L_to_m**2*G%areaT(i,j)
       !   The following contribution appears to be calculating the volume flux of sea-ice
       ! melt. This calculation is clearly WRONG if either sea-ice has variable
