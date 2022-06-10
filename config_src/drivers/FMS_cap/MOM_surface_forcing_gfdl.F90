@@ -603,7 +603,7 @@ subroutine convert_IOB_to_fluxes(IOB, fluxes, index_bounds, Time, valid_time, G,
     do j=js,je ; do i=is,ie
       net_FW(i,j) = US%RZ_T_to_kg_m2s* &
                     (((fluxes%lprec(i,j)   + fluxes%fprec(i,j)) + &
-                      (fluxes%lrunoff(i,j) + fluxes%frunoff(i,j) + fluxes%basal_melt(i,j))) + &
+                      (fluxes%lrunoff(i,j) + fluxes%frunoff(i,j))) + &
                       (fluxes%evap(i,j)    + fluxes%vprec(i,j))) * US%L_to_m**2*G%areaT(i,j)
       !   The following contribution appears to be calculating the volume flux of sea-ice
       ! melt. This calculation is clearly WRONG if either sea-ice has variable
@@ -614,6 +614,10 @@ subroutine convert_IOB_to_fluxes(IOB, fluxes, index_bounds, Time, valid_time, G,
       if (associated(IOB%salt_flux) .and. (CS%ice_salt_concentration>0.0)) &
         net_FW(i,j) = net_FW(i,j) + sign_for_net_FW_bug * US%L_to_m**2*G%areaT(i,j) * &
                      (IOB%salt_flux(i-i0,j-j0) / CS%ice_salt_concentration)
+      if (associated(fluxes%basal_melt)) then
+        net_FW(i,j) = net_FW(i,j) + (US%RZ_T_to_kg_m2s * fluxes%basal_melt(i,j) * US%L_to_m**2*G%areaT(i,j))
+      endif
+      
       net_FW2(i,j) = net_FW(i,j) / (US%L_to_m**2*G%areaT(i,j))
     enddo ; enddo
 
