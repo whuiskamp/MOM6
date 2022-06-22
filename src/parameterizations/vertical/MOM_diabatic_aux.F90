@@ -1745,13 +1745,13 @@ subroutine diabatic_aux_init(Time, G, GV, US, param_file, diag, CS, useALEalgori
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! PIK_basal !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
   if (G%PIK_basal) then
-    call get_param(param_file, mdl, "INPUTDIR", inputdir, default=".")
+    call get_param(param_file, mdl, "INPUTDIR", inputdir, default="INPUT")
     
     call get_param(param_file, mdl, "basal_file", basal_file, &
                    "Name of the file in which all basal melt data is stored", &
                    fail_if_missing=.true.)
     basal_name = trim(adjustl(inputdir)) // '/' // trim(adjustl(basal_file))
-    call log_param(param_file, mdl, "INPUTDIR/GRID_FILE", basal_file)
+    call log_param(param_file, mdl, "INPUTDIR/basal_file", basal_file)
     if (.not.file_exists(basal_file)) &
          call MOM_error(FATAL," Cannot find basal_file: "//&
          trim(basal_file))
