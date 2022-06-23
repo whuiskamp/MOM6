@@ -1605,7 +1605,7 @@ subroutine diabatic_aux_init(Time, G, GV, US, param_file, diag, CS, useALEalgori
   character(len=32)  :: chl_varname ! Name of chl_a variable in chl_file.
   logical :: use_temperature     ! True if thermodynamics are enabled.
   integer :: isd, ied, jsd, jed, IsdB, IedB, JsdB, JedB, nz, nbands
-  character(len=200) :: basal_file, basal_name ! PIK_basal
+  character(len=200) :: basal_file, basal_path ! PIK_basal
 
 
   isd  = G%isd  ; ied  = G%ied  ; jsd  = G%jsd  ; jed  = G%jed ; nz = GV%ke
@@ -1745,18 +1745,18 @@ subroutine diabatic_aux_init(Time, G, GV, US, param_file, diag, CS, useALEalgori
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! PIK_basal !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
   
   if (G%PIK_basal) then
-    call get_param(param_file, mdl, "INPUTDIR", inputdir, default="INPUT")
+    call get_param(param_file, mdl, "INPUTDIR", inputdir, default=".")
     
     call get_param(param_file, mdl, "basal_file", basal_file, &
                    "Name of the file in which all basal melt data is stored", &
                    fail_if_missing=.true.)
-    basal_name = trim(adjustl(inputdir)) // '/' // trim(adjustl(basal_file))
+    basal_path = trim(adjustl(inputdir)) // '/' // trim(adjustl(basal_file))
     call log_param(param_file, mdl, "INPUTDIR/basal_file", basal_file)
-    if (.not.file_exists(basal_file)) &
+    if (.not.file_exists(basal_path)) &
          call MOM_error(FATAL," Cannot find basal_file: "//&
-         trim(basal_file))
+         trim(basal_path))
     allocate(basal_depth(isd:ied,jsd:jed))
-    call MOM_read_data(basal_file,'basal_depth',basal_depth,G%Domain)
+    call MOM_read_data(basal_path,'basal_depth',basal_depth,G%Domain)
     !do j=G%jsd,G%jed ; do i=G%isd,G%ied
     !  G%basal_depth(i,j) = tempH1(i,j)
     !enddo ; enddo
