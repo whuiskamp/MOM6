@@ -445,13 +445,13 @@ subroutine convert_IOB_to_fluxes(IOB, fluxes, index_bounds, Time, valid_time, G,
     endif
 
     ! PIK_basal
-    if (associated(IOB%basal)) then
+    if (G%PIK_basal) then
       fluxes%basal_melt(i,j) = kg_m2_s_conversion * IOB%basal(i-i0,j-j0) * G%mask2dT(i,j)
       if (CS%check_no_land_fluxes) &
         call check_mask_val_consistency(IOB%basal(i-i0,j-j0), G%mask2dT(i,j), i, j, 'basal', G)
     endif
     
-    if (associated(IOB%basal_hflx)) then
+    if (G%PIK_basal) then
       fluxes%heat_content_basal(i,j) = US%W_m2_to_QRZ_T * IOB%basal_hflx(i-i0,j-j0) * G%mask2dT(i,j)
       if (CS%check_no_land_fluxes) &
         call check_mask_val_consistency(IOB%basal_hflx(i-i0,j-j0), G%mask2dT(i,j), i, j, 'basal_hflx', G)
