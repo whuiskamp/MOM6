@@ -1478,7 +1478,7 @@ subroutine register_forcing_type_diags(Time, diag, US, use_temperature, handles,
     handles%id_basal = register_diag_field('ocean_model', 'basal', diag%axesT1, Time, &
         'Basal melt from ice shelves into ocean', &
         units='kg m-2 s-1', conversion=US%RZ_T_to_kg_m2s, &
-        standard_name='water_flux_into_sea_water_from_ice_shelves', cmor_field_name='friver',      &
+        standard_name='water_flux_into_sea_water_from_ice_shelves', cmor_field_name='basal_melt',      &
         cmor_standard_name='water_flux_into_sea_water_from_ice_shelves',                           &
         cmor_long_name='Water Flux into Sea Water From Ice Shelves')
   endif
