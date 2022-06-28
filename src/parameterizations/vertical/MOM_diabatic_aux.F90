@@ -1216,7 +1216,7 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
     !   consistent and correct. These details shouldnt significantly effect climate,
     !   but do change answers.
     !-----------------------------------------------------------------------------------------
-    if (calculate_buoyancy) .and. (G%PIK_basal) then !PIK_basal
+    if (calculate_buoyancy .and. G%PIK_basal) then !PIK_basal
       call extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt,          &
                   H_limit_fluxes, CS%use_river_heat_content, CS%use_calving_heat_content, &
                   h2d, T2d, netMassInOut, netMassOut, netHeat, netSalt,                   &
