@@ -1216,19 +1216,21 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
     !   consistent and correct. These details shouldnt significantly effect climate,
     !   but do change answers.
     !-----------------------------------------------------------------------------------------
-    if (calculate_buoyancy) then
+    if (calculate_buoyancy) .and. (G%PIK_basal) then !PIK_basal
+      call extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt,          &
+                  H_limit_fluxes, CS%use_river_heat_content, CS%use_calving_heat_content, &
+                  h2d, T2d, netMassInOut, netMassOut, netHeat, netSalt,                   &
+                  Pen_SW_bnd, tv, aggregate_FW_forcing, nonpenSW=nonpenSW,                &
+                  net_Heat_rate=netheat_rate, net_salt_rate=netsalt_rate,                 &
+                  netmassinout_rate=netmassinout_rate, pen_sw_bnd_rate=pen_sw_bnd_rate,   &
+                  basal_thk=basal_thk,basal_heat=basal_heat)
+    elseif (calculate_buoyancy) then 
       call extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt,          &
                   H_limit_fluxes, CS%use_river_heat_content, CS%use_calving_heat_content, &
                   h2d, T2d, netMassInOut, netMassOut, netHeat, netSalt,                   &
                   Pen_SW_bnd, tv, aggregate_FW_forcing, nonpenSW=nonpenSW,                &
                   net_Heat_rate=netheat_rate, net_salt_rate=netsalt_rate,                 &
                   netmassinout_rate=netmassinout_rate, pen_sw_bnd_rate=pen_sw_bnd_rate)
-    elseif (G%PIK_basal) then !PIK_basal
-      call extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt,          &
-                  H_limit_fluxes, CS%use_river_heat_content, CS%use_calving_heat_content, &
-                  h2d, T2d, netMassInOut, netMassOut, netHeat, netSalt,                   &
-                  Pen_SW_bnd, tv, aggregate_FW_forcing, nonpenSW=nonpenSW,                &
-                  basal_thk=basal_thk,basal_heat=basal_heat)
     else
       call extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt,          &
                   H_limit_fluxes, CS%use_river_heat_content, CS%use_calving_heat_content, &
