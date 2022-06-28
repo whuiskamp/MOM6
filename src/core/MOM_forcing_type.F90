@@ -1574,7 +1574,7 @@ subroutine register_forcing_type_diags(Time, diag, US, use_temperature, handles,
   if (PIK_basal) then
     handles%id_total_basal = register_scalar_field('ocean_model', 'total_basal', Time, diag,&
       long_name='Area integrated liquid basal melt into ocean', units='kg s-1',                   &
-      cmor_field_name='total_basal',                                                         &
+      cmor_field_name='total_basal_int',                                                         &
       cmor_standard_name='water_flux_into_sea_water_from_basal_melt_area_integrated',             &
       cmor_long_name='Water Flux into Sea Water From Basal Melt Area Integrated')
   endif
