@@ -1217,7 +1217,7 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
     !   but do change answers.
     !-----------------------------------------------------------------------------------------
     if (calculate_buoyancy .and. G%PIK_basal) then !PIK_basal
-      call MOM_error(WARNING, "calculate_buoyancy and PIK_basal are present")
+      !call MOM_error(WARNING, "calculate_buoyancy and PIK_basal are present")
       call extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt,          &
                   H_limit_fluxes, CS%use_river_heat_content, CS%use_calving_heat_content, &
                   h2d, T2d, netMassInOut, netMassOut, netHeat, netSalt,                   &
@@ -1226,7 +1226,7 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
                   netmassinout_rate=netmassinout_rate, pen_sw_bnd_rate=pen_sw_bnd_rate,   &
                   basal_thk=basal_thk,basal_heat=basal_heat)
     elseif (calculate_buoyancy) then 
-      call MOM_error(WARNING, "calculate_buoyancy is present; PIK_basal is not")
+      !call MOM_error(WARNING, "calculate_buoyancy is present; PIK_basal is not")
       call extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt,          &
                   H_limit_fluxes, CS%use_river_heat_content, CS%use_calving_heat_content, &
                   h2d, T2d, netMassInOut, netMassOut, netHeat, netSalt,                   &
@@ -1234,7 +1234,7 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
                   net_Heat_rate=netheat_rate, net_salt_rate=netsalt_rate,                 &
                   netmassinout_rate=netmassinout_rate, pen_sw_bnd_rate=pen_sw_bnd_rate)
     else
-      call MOM_error(WARNING, "neither calculate_buoyancy or PIK_basal are present")
+      !call MOM_error(WARNING, "neither calculate_buoyancy or PIK_basal are present")
       call extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt,          &
                   H_limit_fluxes, CS%use_river_heat_content, CS%use_calving_heat_content, &
                   h2d, T2d, netMassInOut, netMassOut, netHeat, netSalt,                   &
