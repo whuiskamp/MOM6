@@ -638,7 +638,7 @@ subroutine convert_IOB_to_fluxes(IOB, fluxes, index_bounds, Time, valid_time, G,
     if (associated(fluxes%basal_melt)) then
       do j=js,je ; do i=is,ie
         net_FW(i,j) = net_FW(i,j) - (US%RZ_T_to_kg_m2s * fluxes%basal_melt(i,j) * US%L_to_m**2*G%areaT(i,j))
-      enddo
+      enddo ; enddo
     endif
   endif
 
