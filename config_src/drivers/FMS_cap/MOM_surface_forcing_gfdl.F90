@@ -633,7 +633,13 @@ subroutine convert_IOB_to_fluxes(IOB, fluxes, index_bounds, Time, valid_time, G,
         fluxes%vprec(i,j) = ( fluxes%vprec(i,j) - kg_m2_s_conversion * fluxes%netFWGlobalAdj ) * G%mask2dT(i,j)
       enddo ; enddo
     endif
-
+    ! But we don't want basal flux added twice, so now after its inclusion for the purposes of zeroing out 
+    ! surface fluxes, we need to remove it again from net_FW.
+    if (associated(fluxes%basal_melt)) then
+      do j=js,je ; do i=is,ie
+        net_FW(i,j) = net_FW(i,j) - (US%RZ_T_to_kg_m2s * fluxes%basal_melt(i,j) * US%L_to_m**2*G%areaT(i,j))
+      enddo
+    endif
   endif
 
   ! Set the wind stresses and ustar.
