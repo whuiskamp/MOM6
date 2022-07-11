@@ -1418,7 +1418,8 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
                 !!!  Update temp. due to mass change !!!
                 dTemp = basal_thk(i)*T2d(i,k)
                 T2d(i,k)    = (hOld*T2d(i,k) + dTemp)*Ithickness
-                tv%S(i,j,k) = (hOld*tv%S(i,j,k) + dSalt)*Ithickness
+                ! We assume fresh water has salinity of 0
+                tv%S(i,j,k) = (hOld*tv%S(i,j,k) + 0.0)*Ithickness
                 ! Update temp. due to heat flux
                 T2d(i,k)    = T2d(i,k) + basal_heat(i)*h2d(i,k)
                 exit ! No need to search further down the column
