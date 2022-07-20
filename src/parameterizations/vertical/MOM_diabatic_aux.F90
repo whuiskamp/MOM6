@@ -1411,17 +1411,20 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
             do k=1,nz-1
               K_depth = sum(h2d(i,0:k)) ! Check if depth of flux input is in current k-level
               Kp1_depth = sum(h2d(i,0:k+1))
-              if ((K_depth < basal_depth(i,j)) .and. (basal_depth(i,j) < Kp1_depth)) then
+              if ((K_depth <= basal_depth(i,j)) .and. (basal_depth(i,j) <= Kp1_depth)) then
                 hOld     = h2d(i,k)                  ! We need the initial thickness
                 h2d(i,k) = h2d(i,k) + basal_thk(i) ! Update thickness with basal melt
                 Ithickness  = 1.0/h2d(i,k)           ! Inverse new thickness
+                write(0,*) 'At i,j= ', i,j,', Old h= ',hOld,' at level k=',k,' is ' //&
+                            'increased by ',basal_thk(i),'m, resulting in a new thickness ' //&
+                            'of ', h2d(i,k),'m.'
                 !!!  Update temp. due to mass change !!!
                 dTemp = basal_thk(i)*T2d(i,k)
                 T2d(i,k)    = (hOld*T2d(i,k) + dTemp)*Ithickness
                 ! We assume fresh water has salinity of 0
                 tv%S(i,j,k) = (hOld*tv%S(i,j,k) + 0.0)*Ithickness
                 ! Update temp. due to heat flux
-                T2d(i,k)    = T2d(i,k) + basal_heat(i)*h2d(i,k)
+                T2d(i,k)    = (h2d(i,k)*T2d(i,k) + basal_heat(i)*h2d(i,k))*Ithickness
                 exit ! No need to search further down the column
               endif  
             enddo
