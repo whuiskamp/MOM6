@@ -610,10 +610,10 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
 
     ! Testing to see if magnitudes are correct...
     write(0,*) 'lrunoff at i=1,j=7 =',dt*scale*fluxes%lrunoff(1,7)
-    write(0,*) 'basal melt at i=1,j=7 ='dt*scale*fluxes%basal_melt(1,7)
+    write(0,*) 'basal melt at i=1,j=7 =',dt*scale*fluxes%basal_melt(1,7)
     ! There should be no basal melt in the following cell...
     write(0,*) 'lrunoff at i=1,j=7 =',dt*scale*fluxes%lrunoff(10,10)
-    write(0,*) 'basal melt at i=1,j=7 ='dt*scale*fluxes%basal_melt(10,10)
+    write(0,*) 'basal melt at i=1,j=7 =',dt*scale*fluxes%basal_melt(10,10)
 
     ! smg:
     ! for non-Bouss, we add/remove salt mass to total ocean mass. to conserve
