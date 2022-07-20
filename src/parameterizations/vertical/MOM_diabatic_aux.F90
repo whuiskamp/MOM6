@@ -1334,7 +1334,7 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
 
         if (G%PIK_basal) then
           if (basal_thk(i) > 0.) then
-              write(0,*) 'At i,j=',i,',',j,', netFWin (dh)=',netMassOut
+              write(0,*) 'At i,j=',i,',',j,', netFWin (dh)=',netMassOut(i)
           endif 
         endif
         ! B/ Update mass, salt, temp from mass leaving ocean and other fluxes of heat and salt.
