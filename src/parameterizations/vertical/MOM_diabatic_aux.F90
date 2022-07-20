@@ -1316,11 +1316,6 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
           ! Update state
           hOld     = h2d(i,k)               ! Keep original thickness in hand
           h2d(i,k) = h2d(i,k) + dThickness  ! New thickness
-          if (G%PIK_basal) then
-            if (basal_thk(i) > 0.) then
-              write(0,*) 'At i,j=',i,',',j,', netFWin (dh)=',dThickness
-            endif 
-          endif
           if (h2d(i,k) > 0.0) then
             if (calculate_energetics .and. (dThickness > 0.)) then
               ! Calculate the energy required to mix the newly added water over
@@ -1337,6 +1332,11 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
 
         enddo ! k=1,1
 
+        if (G%PIK_basal) then
+          if (basal_thk(i) > 0.) then
+              write(0,*) 'At i,j=',i,',',j,', netFWin (dh)=',netMassOut
+          endif 
+        endif
         ! B/ Update mass, salt, temp from mass leaving ocean and other fluxes of heat and salt.
         do k=1,nz
 
