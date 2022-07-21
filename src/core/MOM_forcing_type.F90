@@ -605,19 +605,10 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
 
     if (present(basal_thk)) then !PIK_basal - Convert mass flux from basal melt
       basal_thk(i) = dt * scale * fluxes%basal_melt(i,j)
+      basal_thk(i) = GV%RZ_to_H * basal_thk(i)
       basal_heat(i)= dt * scale * I_Cp_Hconvert * fluxes%heat_content_basal(i,j)
     endif
 
-    ! Testing to see if magnitudes are correct...
-    !write(0,*) 'lrunoff at i=1,j=7 =',dt*scale*fluxes%lrunoff(34,8)
-    !write(0,*) 'frunoff at i=1,j=7 =',dt*scale*fluxes%frunoff(34,8)
-    !write(0,*) 'lprec at i=1,j=7 =',dt*scale*fluxes%lprec(34,8)
-    !write(0,*) 'fprec at i=1,j=7 =',dt*scale*fluxes%fprec(34,8)
-    !write(0,*) 'vprec at i=1,j=7 =',dt*scale*fluxes%vprec(34,8)
-    !write(0,*) 'evap at i=1,j=7 =',dt*scale*fluxes%evap(34,8)
-    !write(0,*) 'melt at i=1,j=7 =',dt*scale*fluxes%seaice_melt(34,8)
-    !write(0,*) 'basal melt at i=1,j=7 =',dt*scale*fluxes%basal_melt(34,8)
-    
     ! smg:
     ! for non-Bouss, we add/remove salt mass to total ocean mass. to conserve
     ! total salt mass ocean+ice, the sea ice model must lose mass when salt mass
