@@ -1335,6 +1335,14 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
         if (G%PIK_basal) then
           if (basal_thk(i) > 0.) then
               write(0,*) 'At i,j=',i,',',j,', netFWin (dh)=',netMassOut(i)
+              write(0,*) 'lrunoff at i,j=',i,',',j,'= ',dt*fluxes%lrunoff(i,j)
+              write(0,*) 'frunoff at i,j=',i,',',j,'= ',dt*fluxes%frunoff(i,j)
+              write(0,*) 'lprec at i,j=',i,',',j,'= ',dt*fluxes%lprec(i,j)
+              write(0,*) 'fprec at i,j=',i,',',j,'= ',dt*fluxes%fprec(i,j)
+              write(0,*) 'vprec at i,j=',i,',',j,'= ',dt*fluxes%vprec(i,j)
+              write(0,*) 'evap at i,j=',i,',',j,'= ',dt*fluxes%evap(i,j)
+              write(0,*) 'melt at i,j=',i,',',j,'= ',dt*fluxes%seaice_melt(i,j)
+              write(0,*) 'basal melt at i,j=',i,',',j,'= ',dt*fluxes%basal_melt(i,j)
           endif 
         endif
         ! B/ Update mass, salt, temp from mass leaving ocean and other fluxes of heat and salt.

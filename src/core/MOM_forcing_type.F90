@@ -609,19 +609,15 @@ subroutine extractFluxes1d(G, GV, US, fluxes, optics, nsw, j, dt, &
     endif
 
     ! Testing to see if magnitudes are correct...
-    write(0,*) 'lrunoff at i=1,j=7 =',dt*scale*fluxes%lrunoff(34,8)
-    write(0,*) 'frunoff at i=1,j=7 =',dt*scale*fluxes%frunoff(34,8)
-    write(0,*) 'lprec at i=1,j=7 =',dt*scale*fluxes%lprec(34,8)
-    write(0,*) 'fprec at i=1,j=7 =',dt*scale*fluxes%fprec(34,8)
-    write(0,*) 'vprec at i=1,j=7 =',dt*scale*fluxes%vprec(34,8)
-    write(0,*) 'evap at i=1,j=7 =',dt*scale*fluxes%evap(34,8)
-    write(0,*) 'melt at i=1,j=7 =',dt*scale*fluxes%seaice_melt(34,8)
-    write(0,*) 'basal melt at i=1,j=7 =',dt*scale*fluxes%basal_melt(34,8)
+    !write(0,*) 'lrunoff at i=1,j=7 =',dt*scale*fluxes%lrunoff(34,8)
+    !write(0,*) 'frunoff at i=1,j=7 =',dt*scale*fluxes%frunoff(34,8)
+    !write(0,*) 'lprec at i=1,j=7 =',dt*scale*fluxes%lprec(34,8)
+    !write(0,*) 'fprec at i=1,j=7 =',dt*scale*fluxes%fprec(34,8)
+    !write(0,*) 'vprec at i=1,j=7 =',dt*scale*fluxes%vprec(34,8)
+    !write(0,*) 'evap at i=1,j=7 =',dt*scale*fluxes%evap(34,8)
+    !write(0,*) 'melt at i=1,j=7 =',dt*scale*fluxes%seaice_melt(34,8)
+    !write(0,*) 'basal melt at i=1,j=7 =',dt*scale*fluxes%basal_melt(34,8)
     
-    ! There should be no basal melt in the following cell...
-    !write(0,*) 'lrunoff at i=10,j=10 =',dt*scale*fluxes%lrunoff(10,10)
-    !write(0,*) 'basal melt at i=10,j=10 =',dt*scale*fluxes%basal_melt(10,10)
-
     ! smg:
     ! for non-Bouss, we add/remove salt mass to total ocean mass. to conserve
     ! total salt mass ocean+ice, the sea ice model must lose mass when salt mass
