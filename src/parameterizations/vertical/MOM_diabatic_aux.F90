@@ -1440,8 +1440,20 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
                 ! Update temp. due to heat flux
                 T2d(i,k)    = (h2d(i,k)*T2d(i,k) + basal_heat(i))*Ithickness
                 exit ! No need to search further down the column
-              endif  
+              endif
             enddo
+            ! If basal_depth > max depth, insert fluxes in bottom most layer.
+            if (basal_depth(i,j) > sum(h2d(i,0:nz))) then
+              hOld     = h2d(i,nz)               ! We need the initial thickness
+              h2d(i,nz) = h2d(i,nz) + basal_thk(i) ! Update thickness with basal melt
+              Ithickness  = 1.0/h2d(i,nz)           ! Inverse new thickness
+              !!!  Update temp. due to mass change !!!
+              dTemp = basal_thk(i)*T2d(i,nz)
+              T2d(i,nz)    = (hOld*T2d(i,nz) + dTemp)*Ithickness
+              ! We assume fresh water has salinity of 0
+              tv%S(i,j,nz) = (hOld*tv%S(i,j,nz) + 0.0)*Ithickness
+              ! Update temp. due to heat flux
+              T2d(i,nz)    = (h2d(i,nz)*T2d(i,nz) + basal_heat(i))*Ithickness
           endif  
         endif
 
