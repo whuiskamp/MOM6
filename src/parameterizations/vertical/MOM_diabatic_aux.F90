@@ -1454,6 +1454,7 @@ subroutine applyBoundaryFluxesInOut(CS, G, GV, US, dt, fluxes, optics, nsw, h, t
               tv%S(i,j,nz) = (hOld*tv%S(i,j,nz) + 0.0)*Ithickness
               ! Update temp. due to heat flux
               T2d(i,nz)    = (h2d(i,nz)*T2d(i,nz) + basal_heat(i))*Ithickness
+            endif
           endif  
         endif
 
