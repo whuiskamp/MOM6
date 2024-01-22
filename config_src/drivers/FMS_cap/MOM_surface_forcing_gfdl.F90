@@ -117,7 +117,7 @@ type, public :: surface_forcing_CS ; private
   logical :: adjust_net_srestore_to_zero    !< Adjust srestore to zero (for both salt_flux or vprec)
   logical :: adjust_net_srestore_by_scaling !< Adjust srestore w/o moving zero contour
   logical :: adjust_net_fresh_water_to_zero !< Adjust net surface fresh-water (with restoring) to zero
-  logical :: adjust_prcme_adj_to_zero       !< Adjust flux corrections to zero (W.H. custom option)
+  logical :: dont_adjust_prcme_adj_to_zero  !< Adjust flux corrections to zero (W.H. custom option)
   logical :: use_net_FW_adjustment_sign_bug !< Use the wrong sign when adjusting net FW
   logical :: adjust_net_fresh_water_by_scaling !< Adjust net surface fresh-water w/o moving zero contour
   logical :: mask_srestore_under_ice        !< If true, use an ice mask defined by frazil criteria
@@ -607,7 +607,7 @@ subroutine convert_IOB_to_fluxes(IOB, fluxes, index_bounds, Time, valid_time, G,
         net_FW(i,j) = US%RZ_T_to_kg_m2s* &
                       (((fluxes%lprec(i,j)   + fluxes%fprec(i,j)) + &
                         (fluxes%lrunoff(i,j) + fluxes%frunoff(i,j))) + &
-                        (fluxes%evap(i,j) * US%L_to_m**2*G%areaT(i,j)
+                        (fluxes%evap(i,j))) * US%L_to_m**2*G%areaT(i,j)
       !   The following contribution appears to be calculating the volume flux of sea-ice
       ! melt. This calculation is clearly WRONG if either sea-ice has variable
       ! salinity or the sea-ice is completely fresh.
