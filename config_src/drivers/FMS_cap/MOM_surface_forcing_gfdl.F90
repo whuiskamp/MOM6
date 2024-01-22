@@ -117,6 +117,7 @@ type, public :: surface_forcing_CS ; private
   logical :: adjust_net_srestore_to_zero    !< Adjust srestore to zero (for both salt_flux or vprec)
   logical :: adjust_net_srestore_by_scaling !< Adjust srestore w/o moving zero contour
   logical :: adjust_net_fresh_water_to_zero !< Adjust net surface fresh-water (with restoring) to zero
+  logical :: adjust_prcme_adj_to_zero       !< Adjust flux corrections to zero (W.H. custom option)
   logical :: use_net_FW_adjustment_sign_bug !< Use the wrong sign when adjusting net FW
   logical :: adjust_net_fresh_water_by_scaling !< Adjust net surface fresh-water w/o moving zero contour
   logical :: mask_srestore_under_ice        !< If true, use an ice mask defined by frazil criteria
@@ -597,29 +598,54 @@ subroutine convert_IOB_to_fluxes(IOB, fluxes, index_bounds, Time, valid_time, G,
 
   ! adjust the NET fresh-water flux to zero, if flagged
   ! PIK_basal - Basal melt also needs to be part of this adjustment
+  ! Note extra option to prevent prcme_adj being zeroed
   if (CS%adjust_net_fresh_water_to_zero) then
     sign_for_net_FW_bug = 1.
     if (CS%use_net_FW_adjustment_sign_bug) sign_for_net_FW_bug = -1.
-    do j=js,je ; do i=is,ie
-      net_FW(i,j) = US%RZ_T_to_kg_m2s* &
-                    (((fluxes%lprec(i,j)   + fluxes%fprec(i,j)) + &
-                      (fluxes%lrunoff(i,j) + fluxes%frunoff(i,j))) + &
-                      (fluxes%evap(i,j)    + fluxes%vprec(i,j))) * US%L_to_m**2*G%areaT(i,j)
+    if (CS%dont_adjust_prcme_adj_to_zero) then
+      do j=js,je ; do i=is,ie
+        net_FW(i,j) = US%RZ_T_to_kg_m2s* &
+                      (((fluxes%lprec(i,j)   + fluxes%fprec(i,j)) + &
+                        (fluxes%lrunoff(i,j) + fluxes%frunoff(i,j))) + &
+                        (fluxes%evap(i,j) * US%L_to_m**2*G%areaT(i,j)
       !   The following contribution appears to be calculating the volume flux of sea-ice
       ! melt. This calculation is clearly WRONG if either sea-ice has variable
       ! salinity or the sea-ice is completely fresh.
       !   Bob thinks this is trying ensure the net fresh-water of the ocean + sea-ice system
       ! is constant.
       !   To do this correctly we will need a sea-ice melt field added to IOB. -AJA
-      if (associated(IOB%salt_flux) .and. (CS%ice_salt_concentration>0.0)) &
-        net_FW(i,j) = net_FW(i,j) + sign_for_net_FW_bug * US%L_to_m**2*G%areaT(i,j) * &
-                     (IOB%salt_flux(i-i0,j-j0) / CS%ice_salt_concentration)
-      if (associated(fluxes%basal_melt)) then
-        net_FW(i,j) = net_FW(i,j) + (US%RZ_T_to_kg_m2s * fluxes%basal_melt(i,j) * US%L_to_m**2*G%areaT(i,j))
-      endif
+        if (associated(IOB%salt_flux) .and. (CS%ice_salt_concentration>0.0)) &
+          net_FW(i,j) = net_FW(i,j) + sign_for_net_FW_bug * US%L_to_m**2*G%areaT(i,j) * &
+                       (IOB%salt_flux(i-i0,j-j0) / CS%ice_salt_concentration)
+        if (associated(fluxes%basal_melt)) then
+          net_FW(i,j) = net_FW(i,j) + (US%RZ_T_to_kg_m2s * fluxes%basal_melt(i,j) * US%L_to_m**2*G%areaT(i,j))
+        endif
       
-      net_FW2(i,j) = net_FW(i,j) / (US%L_to_m**2*G%areaT(i,j))
-    enddo ; enddo
+        net_FW2(i,j) = net_FW(i,j) / (US%L_to_m**2*G%areaT(i,j))
+      enddo ; enddo
+    else
+      do j=js,je ; do i=is,ie
+        net_FW(i,j) = US%RZ_T_to_kg_m2s* &
+                      (((fluxes%lprec(i,j)   + fluxes%fprec(i,j)) + &
+                        (fluxes%lrunoff(i,j) + fluxes%frunoff(i,j))) + &
+                        (fluxes%evap(i,j)    + fluxes%vprec(i,j))) * US%L_to_m**2*G%areaT(i,j)
+      !   The following contribution appears to be calculating the volume flux of sea-ice
+      ! melt. This calculation is clearly WRONG if either sea-ice has variable
+      ! salinity or the sea-ice is completely fresh.
+      !   Bob thinks this is trying ensure the net fresh-water of the ocean + sea-ice system
+      ! is constant.
+      !   To do this correctly we will need a sea-ice melt field added to IOB. -AJA
+        if (associated(IOB%salt_flux) .and. (CS%ice_salt_concentration>0.0)) &
+          net_FW(i,j) = net_FW(i,j) + sign_for_net_FW_bug * US%L_to_m**2*G%areaT(i,j) * &
+                       (IOB%salt_flux(i-i0,j-j0) / CS%ice_salt_concentration)
+        if (associated(fluxes%basal_melt)) then
+          net_FW(i,j) = net_FW(i,j) + (US%RZ_T_to_kg_m2s * fluxes%basal_melt(i,j) * US%L_to_m**2*G%areaT(i,j))
+        endif
+      
+        net_FW2(i,j) = net_FW(i,j) / (US%L_to_m**2*G%areaT(i,j))
+      enddo ; enddo
+    endif  
+    
 
     if (CS%adjust_net_fresh_water_by_scaling) then
       call adjust_area_mean_to_zero(net_FW2, G, fluxes%netFWGlobalScl)
@@ -1344,6 +1370,11 @@ subroutine surface_forcing_init(Time, G, US, param_file, diag, CS, wind_stagger)
                  CS%use_net_FW_adjustment_sign_bug, &
                    "If true, use the wrong sign for the adjustment to "//&
                    "the net fresh-water.", default=.false.)
+  call get_param(param_file, mdl, "DONT_ADJUST_PRCME_ADJ_TO_ZERO", &
+                 CS%dont_adjust_prcme_adj_to_zero, &
+                 "If true, prevents mass flux adjustments applied via "//&
+                 "the prcme_adj data_override field from being zeroed out." // &
+                 "Functionally, this allows for controlled sea level change.", default=.false.)
   call get_param(param_file, mdl, "ADJUST_NET_FRESH_WATER_BY_SCALING", &
                  CS%adjust_net_fresh_water_by_scaling, &
                  "If true, adjustments to net fresh water to achieve zero net are "//&

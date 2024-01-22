@@ -2,7 +2,7 @@
 *.swp
 *~
 html
-
+.vscode/
 
 # Autoconf output
 aclocal.m4
